@@ -61,23 +61,33 @@ export class Lighthouse {
     });
 
     // Add windows around the light room
-    for (let i = 0; i < 4; i++) {
+    const windowCount = 8;
+    const windowOutwardsOffset = 2.8;
+    for (let i = 0; i < windowCount; i++) {
       const window = new THREE.Mesh(windowGeometry, windowMaterial);
-      const angle = (i / 4) * Math.PI * 2;
-      window.position.set(Math.cos(angle) * 3.1, 15, Math.sin(angle) * 3.1);
+      const angle = (i / windowCount) * Math.PI * 2 + Math.PI / 8;
+      window.position.set(
+        Math.cos(angle) * windowOutwardsOffset,
+        15,
+        Math.sin(angle) * windowOutwardsOffset
+      );
       window.lookAt(0, 15, 0);
+
+      // negate direction of the window
+      window.rotateY(Math.PI);
+
       this.mesh.add(window);
     }
 
     // Roof (reduced from 5 to 3.75 units radius)
-    const roofGeometry = new THREE.ConeGeometry(3.75, 2.25, 8);
+    const roofGeometry = new THREE.ConeGeometry(3.75, 3.25, 8);
     const roofMaterial = new THREE.MeshStandardMaterial({
       color: 0x333333, // Dark gray
       roughness: 0.8,
       metalness: 0.2,
     });
     const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-    roof.position.y = 16.125; // On top of light room
+    roof.position.y = 17.125; // On top of light room
     roof.castShadow = true;
     this.mesh.add(roof);
 
