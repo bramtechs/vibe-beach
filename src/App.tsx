@@ -55,7 +55,7 @@ function App() {
         >
           Reset Position
         </button>
-        <TimeOfDaySlider onChange={handleTimeChange} />
+        {/* <TimeOfDaySlider onChange={handleTimeChange} /> */}
         <FogDensitySlider onChange={handleFogDensityChange} />
       </div>
     </div>

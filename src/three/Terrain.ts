@@ -4,9 +4,6 @@ class TerrainChunk {
   private mesh: THREE.Mesh;
   private uniforms: {
     time: { value: number };
-    noiseScale: { value: number };
-    heightScale: { value: number };
-    noiseStrength: { value: number };
     sandColor: { value: THREE.Color };
     sandColor2: { value: THREE.Color };
     sandColor3: { value: THREE.Color };
@@ -15,28 +12,29 @@ class TerrainChunk {
     lightDirection: { value: THREE.Vector3 };
     fogColor: { value: THREE.Color };
     fogDensity: { value: number };
-    chunkPosition: { value: THREE.Vector2 };
-    chunkSize: { value: number };
   };
   private position: THREE.Vector2;
   private size: number;
   private currentLOD: number;
-  private geometries: THREE.PlaneGeometry[];
+  private geometries: THREE.BufferGeometry[];
   private static readonly LOD_LEVELS = [
     { resolution: 64, distance: 0 }, // Low detail
     { resolution: 32, distance: 24 }, // Very low detail
   ];
   private lastUpdateTime: number = 0;
   private updateInterval: number = 0;
+  private baseHeight: number;
 
   constructor(
     position: THREE.Vector2,
     size: number,
-    sandTexture: THREE.Texture
+    sandTexture: THREE.Texture,
+    baseHeight: number
   ) {
     this.position = position;
     this.size = size;
     this.currentLOD = 0;
+    this.baseHeight = baseHeight;
 
     // Create geometries for all LOD levels
     this.geometries = TerrainChunk.LOD_LEVELS.map((level) => {
@@ -47,15 +45,71 @@ class TerrainChunk {
         level.resolution
       );
       geometry.rotateX(-Math.PI / 2);
+
+      // Get the position attribute
+      const positions = geometry.attributes.position;
+      const vertices = positions.array;
+      const vertexCount = vertices.length / 3;
+
+      // Calculate heights for each vertex
+      for (let i = 0; i < vertexCount; i++) {
+        const x = vertices[i * 3];
+        const z = vertices[i * 3 + 2];
+
+        // Calculate world position
+        const worldX = x + position.x;
+        const worldZ = z + position.y;
+
+        // Calculate distance from center
+        const distFromCenter = Math.sqrt(worldX * worldX + worldZ * worldZ);
+        const islandRadius = 40.0;
+
+        // Generate height using multiple octaves of noise
+        const noiseScale = 0.005;
+        const heightScale = 12.0;
+        const noiseStrength = 0.4;
+
+        const noisePos = new THREE.Vector2(worldX, worldZ).multiplyScalar(
+          noiseScale
+        );
+        let height = this.fbm(noisePos) * heightScale * noiseStrength;
+
+        // Add gentler variation based on position
+        height += Math.sin(worldX * 0.03) * Math.cos(worldZ * 0.03) * 0.05;
+
+        // Create a more pronounced island shape
+        const beachRadius = 45.0; // Added transition zone
+        const beachHeight = -1.5; // Slightly higher beach
+        const centerHeight = 4.0; // Slightly lower center elevation
+
+        // Create smoother transitions
+        const islandFactor = this.smoothstep(
+          islandRadius,
+          beachRadius,
+          distFromCenter
+        );
+        const centerFactor =
+          1.0 - this.smoothstep(0.0, islandRadius * 0.7, distFromCenter); // Wider center influence
+
+        // Add central elevation with smoother transition
+        height += centerFactor * centerHeight;
+
+        // Create gradual slope towards the ocean with smoother transition
+        height = this.mix(height, beachHeight, islandFactor);
+
+        // Apply height to vertex
+        vertices[i * 3 + 1] = height + baseHeight;
+      }
+
+      // Recalculate normals after modifying vertices
+      geometry.computeVertexNormals();
+
       return geometry;
     });
 
     // Create shader uniforms
     this.uniforms = {
       time: { value: 0 },
-      heightScale: { value: 10.0 },
-      noiseScale: { value: 0.02 },
-      noiseStrength: { value: 0.8 },
       sandColor: { value: new THREE.Color(0xf4d03f) },
       sandColor2: { value: new THREE.Color(0xf1c40f) },
       sandColor3: { value: new THREE.Color(0xf39c12) },
@@ -64,99 +118,23 @@ class TerrainChunk {
       lightDirection: { value: new THREE.Vector3(1, 1, 1) },
       fogColor: { value: new THREE.Color(0x87ceeb) },
       fogDensity: { value: 0.01 },
-      chunkPosition: { value: new THREE.Vector2(position.x, position.y) },
-      chunkSize: { value: size },
     };
 
     // Create shader material
     const material = new THREE.ShaderMaterial({
       uniforms: this.uniforms,
       vertexShader: `
-        uniform float time;
-        uniform float noiseScale;
-        uniform float heightScale;
-        uniform float noiseStrength;
-        uniform vec2 chunkPosition;
-        uniform float chunkSize;
-        
         varying vec3 vNormal;
         varying vec3 vPosition;
-        varying float vHeight;
         varying vec2 vUv;
         varying float vFogDepth;
         
-        float random(vec2 st) {
-          return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-        }
-        
-        float noise(vec2 st) {
-          vec2 i = floor(st);
-          vec2 f = fract(st);
-          
-          float a = random(i);
-          float b = random(i + vec2(1.0, 0.0));
-          float c = random(i + vec2(0.0, 1.0));
-          float d = random(i + vec2(1.0, 1.0));
-          
-          vec2 u = f * f * (3.0 - 2.0 * f);
-          return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-        }
-        
-        float fbm(vec2 st) {
-          float value = 0.0;
-          float amplitude = 0.5;
-          float frequency = 1.0;
-          
-          for (int i = 0; i < 4; i++) {
-            value += amplitude * noise(st * frequency);
-            st *= 2.0;
-            amplitude *= 0.5;
-            frequency *= 2.0;
-          }
-          return value;
-        }
-        
         void main() {
-          vec3 pos = position;
-          
-          // Calculate world position
-          vec2 worldPos = pos.xz + chunkPosition;
-          
-          // Calculate distance from center
-          float distFromCenter = length(worldPos);
-          float maxDist = 50.0;
-          
-          // Generate height using multiple octaves of noise
-          vec2 noisePos = worldPos * noiseScale;
-          float height = fbm(noisePos) * heightScale;
-          
-          // Add some variation based on position
-          height += sin(worldPos.x * 0.1) * cos(worldPos.y * 0.1) * 0.2;
-          
-          // Create a gradual slope towards the ocean
-          float slopeFactor = smoothstep(0.0, maxDist, distFromCenter);
-          height = mix(height, -5.0, slopeFactor);
-          
-          // Apply height to position
-          pos.y += height;
-          
-          // Calculate normal
-          vec2 eps = vec2(0.01, 0.0);
-          float hL = fbm((worldPos - eps.xy) * noiseScale) * heightScale;
-          float hR = fbm((worldPos + eps.xy) * noiseScale) * heightScale;
-          float hD = fbm((worldPos - eps.yx) * noiseScale) * heightScale;
-          float hU = fbm((worldPos + eps.yx) * noiseScale) * heightScale;
-          
-          vec3 normal = normalize(vec3(hL - hR, 2.0, hD - hU));
-          normal.y += slopeFactor * 0.5;
-          normal = normalize(normal);
-          
           vNormal = normal;
-          vPosition = pos;
-          vHeight = height;
-          vUv = worldPos * 1.1;
+          vPosition = position;
+          vUv = uv * 10.1;
           
-          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
           vFogDepth = -mvPosition.z;
           
           gl_Position = projectionMatrix * mvPosition;
@@ -170,19 +148,15 @@ class TerrainChunk {
         
         varying vec3 vNormal;
         varying vec3 vPosition;
-        varying float vHeight;
         varying vec2 vUv;
         varying float vFogDepth;
         
         void main() {
           vec4 sandColor = texture2D(sandTexture, vUv);
           
-          float heightFactor = smoothstep(0.0, 1.0, vHeight / 2.0);
-          vec3 color = mix(sandColor.rgb, sandColor.rgb * 0.9, heightFactor);
-          
           // Enhanced lighting
           float diffuse = max(0.0, dot(vNormal, normalize(lightDirection)));
-          color *= diffuse * 0.8 + 0.5;
+          vec3 color = sandColor.rgb * (diffuse * 0.8 + 0.5);
           
           // Add some specular highlights
           vec3 viewDir = normalize(-vPosition);
@@ -203,7 +177,7 @@ class TerrainChunk {
     this.mesh = new THREE.Mesh(this.geometries[0], material);
     this.mesh.position.set(position.x, 0, position.y);
     this.mesh.receiveShadow = true;
-    this.mesh.castShadow = false; // Disable shadow casting
+    this.mesh.castShadow = false;
 
     // Remove custom depth material since we're not using shadows
     this.mesh.customDepthMaterial = undefined;
@@ -276,6 +250,53 @@ class TerrainChunk {
       this.mesh.material.dispose();
     }
   }
+
+  private fbm(pos: THREE.Vector2): number {
+    let value = 0.0;
+    let amplitude = 0.5;
+    let frequency = 1.0;
+
+    for (let i = 0; i < 4; i++) {
+      value += amplitude * this.noise(pos.clone().multiplyScalar(frequency));
+      pos.multiplyScalar(2.0);
+      amplitude *= 0.5;
+      frequency *= 2.0;
+    }
+    return value;
+  }
+
+  private noise(pos: THREE.Vector2): number {
+    const i = new THREE.Vector2(Math.floor(pos.x), Math.floor(pos.y));
+    const f = new THREE.Vector2(pos.x - i.x, pos.y - i.y);
+
+    const a = this.random(i);
+    const b = this.random(new THREE.Vector2(i.x + 1, i.y));
+    const c = this.random(new THREE.Vector2(i.x, i.y + 1));
+    const d = this.random(new THREE.Vector2(i.x + 1, i.y + 1));
+
+    const u = new THREE.Vector2(
+      f.x * f.x * (3.0 - 2.0 * f.x),
+      f.y * f.y * (3.0 - 2.0 * f.y)
+    );
+
+    return this.mix(this.mix(a, b, u.x), this.mix(c, d, u.x), u.y);
+  }
+
+  private random(pos: THREE.Vector2): number {
+    return (
+      (Math.sin(pos.dot(new THREE.Vector2(12.9898, 78.233))) * 43758.5453123) %
+      1
+    );
+  }
+
+  private mix(x: number, y: number, a: number): number {
+    return x * (1 - a) + y * a;
+  }
+
+  private smoothstep(edge0: number, edge1: number, x: number): number {
+    const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+  }
 }
 
 export class Terrain {
@@ -292,8 +313,13 @@ export class Terrain {
   private readonly MAX_UPDATES_PER_FRAME = 4;
   private lastChunkUpdateTime: number = 0;
   private readonly CHUNK_UPDATE_INTERVAL = 0.1; // seconds
+  private baseHeight: number;
 
-  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+  constructor(
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+    baseHeight: number = 0
+  ) {
     this.chunks = new Map();
     this.scene = scene;
     this.camera = camera;
@@ -302,15 +328,17 @@ export class Terrain {
     this.loadedChunks = new Set();
     this.frustum = new THREE.Frustum();
     this.projScreenMatrix = new THREE.Matrix4();
+    this.baseHeight = baseHeight;
 
     // Load sand texture
     const textureLoader = new THREE.TextureLoader();
-    this.sandTexture = textureLoader.load("/textures/sand.jpg");
+    this.sandTexture = textureLoader.load("/vibe-beach/textures/sand.jpg");
     this.sandTexture.wrapS = THREE.RepeatWrapping;
     this.sandTexture.wrapT = THREE.RepeatWrapping;
     this.sandTexture.repeat.set(20, 20);
-    this.sandTexture.minFilter = THREE.LinearMipMapLinearFilter;
-    this.sandTexture.magFilter = THREE.LinearFilter;
+    this.sandTexture.minFilter = THREE.NearestFilter;
+    this.sandTexture.magFilter = THREE.NearestFilter;
+    this.sandTexture.generateMipmaps = false;
 
     // Initialize chunks around the camera
     this.updateChunks();
@@ -395,7 +423,8 @@ export class Terrain {
           const chunk = new TerrainChunk(
             chunkPos,
             this.chunkSize,
-            this.sandTexture
+            this.sandTexture,
+            this.baseHeight
           );
           this.chunks.set(chunkKey, chunk);
           this.scene.add(chunk.getMesh());
@@ -435,30 +464,60 @@ export class Terrain {
     const chunk = this.chunks.get(chunkKey);
 
     if (!chunk) {
-      return 0;
+      return this.baseHeight;
     }
 
     // Sample the terrain height using the same noise function as the shader
-    const noiseScale = 0.02;
-    const heightScale = 10.0;
-    const noiseStrength = 0.8;
+    const noiseScale = 0.005;
+    const heightScale = 12.0;
+    const noiseStrength = 0.4;
 
     // Calculate distance from center
     const distFromCenter = Math.sqrt(x * x + z * z);
-    const maxDist = 50.0;
+    const islandRadius = 40.0;
 
     // Generate height using multiple octaves of noise
     const noisePos = new THREE.Vector2(x, z).multiplyScalar(noiseScale);
     let height = this.fbm(noisePos) * heightScale * noiseStrength;
 
-    // Add some variation based on position
-    height += Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.2;
+    // Add gentler variation based on position
+    height += Math.sin(x * 0.03) * Math.cos(z * 0.03) * 0.05;
 
-    // Create a gradual slope towards the ocean
-    const slopeFactor = this.smoothstep(0.0, maxDist, distFromCenter);
-    height = this.mix(height, -5.0, slopeFactor);
+    // Create a more pronounced island shape
+    const beachRadius = 45.0; // Added transition zone
+    const beachHeight = -1.5; // Slightly higher beach
+    const centerHeight = 4.0; // Slightly lower center elevation
 
-    return height;
+    // Create smoother transitions
+    const islandFactor = this.smoothstep(
+      islandRadius,
+      beachRadius,
+      distFromCenter
+    );
+    const centerFactor =
+      1.0 - this.smoothstep(0.0, islandRadius * 0.7, distFromCenter); // Wider center influence
+
+    // Add central elevation with smoother transition
+    height += centerFactor * centerHeight;
+
+    // Create gradual slope towards the ocean with smoother transition
+    height = this.mix(height, beachHeight, islandFactor);
+
+    return height + this.baseHeight;
+  }
+
+  public getNormalAt(x: number, z: number): THREE.Vector3 {
+    // Sample heights at nearby points to calculate normal
+    const delta = 0.1; // Small offset for sampling
+    const hL = this.getHeightAt(x - delta, z);
+    const hR = this.getHeightAt(x + delta, z);
+    const hD = this.getHeightAt(x, z - delta);
+    const hU = this.getHeightAt(x, z + delta);
+
+    // Calculate normal using central differences
+    const normal = new THREE.Vector3(hL - hR, 2.0 * delta, hD - hU).normalize();
+
+    return normal;
   }
 
   private fbm(pos: THREE.Vector2): number {

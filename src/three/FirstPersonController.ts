@@ -48,7 +48,22 @@ class FirstPersonController {
     this.terrain = terrain;
     this.sceneManager = sceneManager;
 
-    // Initialize controllers
+    // Set initial random position
+    const x = (Math.random() - 0.5) * 100; // Random x between -50 and 50
+    const z = (Math.random() - 0.5) * 100; // Random z between -50 and 50
+    const y = this.terrain.getHeightAt(x, z) + this.playerHeight;
+    this.camera.position.set(x, y, z);
+
+    // Calculate direction to center of island (0,0)
+    const direction = new THREE.Vector3(x, 0, z).normalize();
+
+    // Calculate the y-rotation (around Y axis) to look at center
+    const yRotation = Math.atan2(direction.x, direction.z);
+
+    // Set the camera rotation to look at center
+    this.euler.set(0, yRotation, 0);
+    this.camera.quaternion.setFromEuler(this.euler);
+
     this.initPointerLock();
     this.initKeyboardControls();
   }
@@ -119,6 +134,7 @@ class FirstPersonController {
         case "Space":
           if (this.canJump && !this.isFlyMode) {
             this.verticalVelocity = this.jumpHeight;
+            this.camera.position.y += 0.1;
             this.canJump = false;
           }
           break;
@@ -172,8 +188,24 @@ class FirstPersonController {
     if (!this.isPointerLocked) return;
 
     if (!this.isFlyMode) {
-      // Apply gravity in walk mode
-      //this.verticalVelocity -= this.gravity * delta;
+      // Get terrain height at current position
+      const terrainHeight = this.terrain.getHeightAt(
+        this.camera.position.x,
+        this.camera.position.z
+      );
+
+      // Check if player is above terrain
+      if (this.camera.position.y > terrainHeight + this.playerHeight) {
+        // Player is in the air, apply gravity
+        this.verticalVelocity -= this.gravity * delta;
+        this.camera.position.y += this.verticalVelocity * delta;
+        this.canJump = false;
+      } else {
+        // Player is on or below terrain
+        this.camera.position.y = terrainHeight + this.playerHeight;
+        this.verticalVelocity = 0;
+        this.canJump = true;
+      }
     } else {
       // Handle vertical movement in fly mode
       const verticalMove =
@@ -207,18 +239,9 @@ class FirstPersonController {
     const moveZ =
       this.velocity.x * right.z + this.velocity.z * cameraDirection.z;
 
-    // Apply vertical movement (gravity/jumping or flying)
-    const moveY = this.isFlyMode ? 0 : this.verticalVelocity * delta;
-
-    // Move camera
+    // Move camera horizontally
     this.camera.position.x += moveX;
     this.camera.position.z += moveZ;
-    this.camera.position.y += moveY;
-
-    // Reset vertical velocity after applying it
-    if (!this.isFlyMode) {
-      this.verticalVelocity = 0;
-    }
   }
 
   public dispose(): void {
@@ -227,36 +250,25 @@ class FirstPersonController {
   }
 
   public savePosition(): void {
-    const position = {
-      x: this.camera.position.x,
-      y: this.camera.position.y,
-      z: this.camera.position.z,
-      rotation: {
-        x: this.euler.x,
-        y: this.euler.y,
-        z: this.euler.z,
-      },
-    };
-    localStorage.setItem("cameraPosition", JSON.stringify(position));
+    // No longer saving position to localStorage
   }
 
   public loadPosition(): void {
-    const savedPosition = localStorage.getItem("cameraPosition");
-    if (savedPosition) {
-      const position = JSON.parse(savedPosition);
-      this.camera.position.set(position.x, position.y, position.z);
-      this.euler.set(
-        position.rotation.x,
-        position.rotation.y,
-        position.rotation.z
-      );
-      this.camera.quaternion.setFromEuler(this.euler);
-    }
+    // No longer loading position from localStorage
   }
 
   public resetPosition(): void {
-    // Reset to initial position (0, 1.7, 0) which is human eye level
-    this.camera.position.set(0, 1.7, 0);
+    // Generate random x,z coordinates within a reasonable range
+    const x = (Math.random() - 0.5) * 100; // Random x between -50 and 50
+    const z = (Math.random() - 0.5) * 100; // Random z between -50 and 50
+
+    // Get the height at this position from the terrain
+    const y = this.terrain.getHeightAt(x, z) + this.playerHeight;
+
+    // Set the camera position
+    this.camera.position.set(x, y, z);
+
+    // Reset rotation
     this.camera.rotation.set(0, 0, 0);
     this.euler.set(0, 0, 0);
     this.camera.quaternion.setFromEuler(this.euler);

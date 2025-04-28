@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Terrain } from "./Terrain";
 
 class SandTrail {
   private mesh: THREE.Mesh;
@@ -9,16 +10,16 @@ class SandTrail {
     // Create a small plane for the trail
     const geometry = new THREE.PlaneGeometry(size, size);
     const material = new THREE.MeshStandardMaterial({
-      color: 0xc2a482, // Slightly darker sand color
+      color: 0xb8a898, // More sand-colored with grayish tint
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.2, // More transparent
       roughness: 0.9,
     });
 
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.rotation.x = -Math.PI / 2; // Rotate to be horizontal
     this.mesh.position.copy(position);
-    this.mesh.position.y = 0.01; // Place just above the ground level
+    this.mesh.position.y += 0.01; // Place just above the terrain
 
     this.lifetime = 5; // Trail lasts for 5 seconds
     this.currentTime = 0;
@@ -45,18 +46,26 @@ class SandTrail {
 export class SandTrailManager {
   private trails: SandTrail[] = [];
   private scene: THREE.Scene;
+  private terrain: Terrain;
   private lastTrailPosition: THREE.Vector3 | null = null;
   private readonly minDistance = 0.5; // Minimum distance between trails
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, terrain: Terrain) {
     this.scene = scene;
+    this.terrain = terrain;
   }
 
   public update(delta: number, playerPosition: THREE.Vector3): void {
-    // Create a position at ground level (y = 0)
+    // Get the terrain height at the player's position
+    const terrainHeight = this.terrain.getHeightAt(
+      playerPosition.x,
+      playerPosition.z
+    );
+
+    // Create a position at the terrain height
     const groundPosition = new THREE.Vector3(
       playerPosition.x,
-      0,
+      terrainHeight,
       playerPosition.z
     );
 
