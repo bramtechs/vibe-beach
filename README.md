@@ -1,6 +1,6 @@
 # Vibe Beach 🏖️
 
-<img src="./misc/logo.png" alt="Screenshot 1" height="300" />
+<img src="./public/logo.png" alt="Screenshot 1" height="300" />
 
 ## 🌐 Check it out!
 
@@ -10,12 +10,12 @@
 
 <table>
   <tr>
-    <td><img src="./misc/screenshot001.png" alt="Screenshot 1" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
-    <td><img src="./misc/screenshot002.png" alt="Screenshot 2" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
+    <td><img src="./misc/screenshot001.jpeg" alt="Screenshot 1" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
+    <td><img src="./misc/screenshot002.jpeg" alt="Screenshot 2" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
   </tr>
   <tr>
-    <td><img src="./misc/screenshot003.png" alt="Screenshot 3" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
-    <td><img src="./misc/screenshot004.png" alt="Screenshot 4" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
+    <td><img src="./misc/screenshot003.jpeg" alt="Screenshot 3" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
+    <td><img src="./misc/screenshot004.jpeg" alt="Screenshot 4" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
   </tr>
 </table>
 
