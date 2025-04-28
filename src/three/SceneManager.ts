@@ -423,7 +423,7 @@ class SceneManager {
     // Save position every 5 seconds
     setInterval(() => {
       this.controller.savePosition();
-    }, 5000);
+    }, 1000);
 
     // Also save position when the window is about to close
     window.addEventListener("beforeunload", () => {
