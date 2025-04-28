@@ -1,15 +1,20 @@
 import * as THREE from "three";
+import { Terrain } from "./Terrain";
 
 class FirstPersonController {
   private camera: THREE.PerspectiveCamera;
   private scene: THREE.Scene;
+  private terrain: Terrain;
 
   // Movement state
   private moveForward = false;
   private moveBackward = false;
   private moveLeft = false;
   private moveRight = false;
+  private moveUp = false;
+  private moveDown = false;
   private canJump = true;
+  private isFlyMode = false;
 
   // Physics
   private velocity = new THREE.Vector3();
@@ -20,6 +25,7 @@ class FirstPersonController {
   private readonly movementSpeed = 5.0;
   private readonly jumpHeight = 10.0;
   private readonly gravity = 30.0;
+  private readonly flySpeed = 5.0;
 
   // Mouse control
   private isPointerLocked = false;
@@ -29,9 +35,14 @@ class FirstPersonController {
   // Player height
   private readonly playerHeight = 1.7;
 
-  constructor(camera: THREE.PerspectiveCamera, scene: THREE.Scene) {
+  constructor(
+    camera: THREE.PerspectiveCamera,
+    scene: THREE.Scene,
+    terrain: Terrain
+  ) {
     this.camera = camera;
     this.scene = scene;
+    this.terrain = terrain;
 
     // Initialize controllers
     this.initPointerLock();
@@ -95,10 +106,26 @@ class FirstPersonController {
         case "KeyD":
           this.moveRight = true;
           break;
+        case "KeyQ":
+          if (this.isFlyMode) this.moveDown = true;
+          break;
+        case "KeyE":
+          if (this.isFlyMode) this.moveUp = true;
+          break;
         case "Space":
-          if (this.canJump) {
+          if (this.canJump && !this.isFlyMode) {
             this.verticalVelocity = this.jumpHeight;
             this.canJump = false;
+          }
+          break;
+        case "KeyF":
+          this.isFlyMode = !this.isFlyMode;
+          if (this.isFlyMode) {
+            this.verticalVelocity = 0;
+            this.canJump = false;
+          } else {
+            this.moveUp = false;
+            this.moveDown = false;
           }
           break;
       }
@@ -118,6 +145,12 @@ class FirstPersonController {
         case "KeyD":
           this.moveRight = false;
           break;
+        case "KeyQ":
+          this.moveDown = false;
+          break;
+        case "KeyE":
+          this.moveUp = false;
+          break;
       }
     };
 
@@ -130,8 +163,15 @@ class FirstPersonController {
     // Only update if pointer is locked
     if (!this.isPointerLocked) return;
 
-    // Apply gravity
-    this.verticalVelocity -= this.gravity * delta;
+    if (!this.isFlyMode) {
+      // Apply gravity in walk mode
+      //this.verticalVelocity -= this.gravity * delta;
+    } else {
+      // Handle vertical movement in fly mode
+      const verticalMove =
+        (Number(this.moveUp) - Number(this.moveDown)) * this.flySpeed * delta;
+      this.camera.position.y += verticalMove;
+    }
 
     // Calculate horizontal movement direction
     this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
@@ -159,25 +199,60 @@ class FirstPersonController {
     const moveZ =
       this.velocity.x * right.z + this.velocity.z * cameraDirection.z;
 
-    // Apply vertical movement (gravity/jumping)
-    const moveY = this.verticalVelocity * delta;
+    // Apply vertical movement (gravity/jumping or flying)
+    const moveY = this.isFlyMode ? 0 : this.verticalVelocity * delta;
 
     // Move camera
     this.camera.position.x += moveX;
     this.camera.position.z += moveZ;
     this.camera.position.y += moveY;
 
-    // Floor collision detection
-    if (this.camera.position.y < this.playerHeight) {
-      this.camera.position.y = this.playerHeight;
+    // Reset vertical velocity after applying it
+    if (!this.isFlyMode) {
       this.verticalVelocity = 0;
-      this.canJump = true;
     }
   }
 
   public dispose(): void {
     // Clean up event listeners if needed
     document.exitPointerLock();
+  }
+
+  public savePosition(): void {
+    const position = {
+      x: this.camera.position.x,
+      y: this.camera.position.y,
+      z: this.camera.position.z,
+      rotation: {
+        x: this.euler.x,
+        y: this.euler.y,
+        z: this.euler.z,
+      },
+    };
+    localStorage.setItem("cameraPosition", JSON.stringify(position));
+  }
+
+  public loadPosition(): void {
+    const savedPosition = localStorage.getItem("cameraPosition");
+    if (savedPosition) {
+      const position = JSON.parse(savedPosition);
+      this.camera.position.set(position.x, position.y, position.z);
+      this.euler.set(
+        position.rotation.x,
+        position.rotation.y,
+        position.rotation.z
+      );
+      this.camera.quaternion.setFromEuler(this.euler);
+    }
+  }
+
+  public resetPosition(): void {
+    // Reset to initial position (0, 1.7, 0) which is human eye level
+    this.camera.position.set(0, 1.7, 0);
+    this.camera.rotation.set(0, 0, 0);
+    this.euler.set(0, 0, 0);
+    this.camera.quaternion.setFromEuler(this.euler);
+    this.verticalVelocity = 0;
   }
 }
 
