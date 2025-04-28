@@ -12,24 +12,34 @@ export class Terrain {
     sandColor3: { value: THREE.Color };
     sandColor4: { value: THREE.Color };
     sandTexture: { value: THREE.Texture };
+    shadowMap: { value: THREE.Texture };
+    shadowMatrix: { value: THREE.Matrix4 };
+    lightDirection: { value: THREE.Vector3 };
+    fogColor: { value: THREE.Color };
+    fogDensity: { value: number };
   };
 
   constructor() {
-    // Create terrain geometry
-    const geometry = new THREE.PlaneGeometry(2000, 2000, 512, 512);
+    // Create terrain geometry with more segments
+    const geometry = new THREE.PlaneGeometry(128, 128, 2048, 2048);
     geometry.rotateX(-Math.PI / 2);
 
     // Create shader uniforms with adjusted values
     this.uniforms = {
       time: { value: 0 },
-      heightScale: { value: 20.0 },
-      noiseScale: { value: 0.01 },
+      heightScale: { value: 10.0 },
+      noiseScale: { value: 0.02 },
       noiseStrength: { value: 0.8 },
       sandColor: { value: new THREE.Color(0xf4d03f) },
       sandColor2: { value: new THREE.Color(0xf1c40f) },
       sandColor3: { value: new THREE.Color(0xf39c12) },
       sandColor4: { value: new THREE.Color(0xe67e22) },
       sandTexture: { value: new THREE.Texture() },
+      shadowMap: { value: new THREE.Texture() },
+      shadowMatrix: { value: new THREE.Matrix4() },
+      lightDirection: { value: new THREE.Vector3(1, 1, 1) },
+      fogColor: { value: new THREE.Color(0x87ceeb) },
+      fogDensity: { value: 0.01 },
     };
 
     // Load sand texture
@@ -45,17 +55,27 @@ export class Terrain {
 
     // Create shader material
     const material = new THREE.ShaderMaterial({
-      uniforms: this.uniforms,
+      uniforms: {
+        ...this.uniforms,
+        shadowMap: { value: new THREE.Texture() },
+        shadowMatrix: { value: new THREE.Matrix4() },
+        lightDirection: { value: new THREE.Vector3(1, 1, 1) },
+        fogColor: { value: new THREE.Color(0x87ceeb) },
+        fogDensity: { value: 0.01 },
+      },
       vertexShader: `
         uniform float time;
         uniform float noiseScale;
         uniform float heightScale;
         uniform float noiseStrength;
+        uniform mat4 shadowMatrix;
         
         varying vec3 vNormal;
         varying vec3 vPosition;
         varying float vHeight;
         varying vec2 vUv;
+        varying vec4 vShadowCoord;
+        varying float vFogDepth;
         
         // Improved noise function
         float random(vec2 st) {
@@ -129,16 +149,62 @@ export class Terrain {
           // Map UVs to world space coordinates
           vUv = pos.xz * 1.1;
           
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+          vShadowCoord = shadowMatrix * vec4(pos, 1.0);
+          
+          // Calculate model-view position for fog
+          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+          vFogDepth = -mvPosition.z;
+          
+          gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
         uniform sampler2D sandTexture;
+        uniform sampler2D shadowMap;
+        uniform vec3 lightDirection;
+        uniform vec3 fogColor;
+        uniform float fogDensity;
         
         varying vec3 vNormal;
         varying vec3 vPosition;
         varying float vHeight;
         varying vec2 vUv;
+        varying vec4 vShadowCoord;
+        varying float vFogDepth;
+        
+        float getShadow() {
+          vec3 shadowCoord = vShadowCoord.xyz / vShadowCoord.w;
+          
+          // Check if the fragment is outside the shadow map
+          if (shadowCoord.z < 0.0 || shadowCoord.z > 1.0) {
+            return 1.0;
+          }
+          
+          shadowCoord = shadowCoord * 0.5 + 0.5;
+          
+          float shadow = 0.0;
+          float bias = 0.001;
+          
+          // PCF shadow sampling with larger kernel for softer shadows
+          vec2 texelSize = 1.0 / vec2(4096.0, 4096.0);
+          for(int x = -2; x <= 2; x++) {
+            for(int y = -2; y <= 2; y++) {
+              float depth = texture2D(shadowMap, shadowCoord.xy + vec2(x, y) * texelSize).r;
+              shadow += shadowCoord.z - bias > depth ? 0.0 : 1.0;
+            }
+          }
+          shadow /= 25.0;
+          
+          // Make shadows more subtle and vary based on sun angle
+          float sunAngle = dot(lightDirection, vec3(0.0, 1.0, 0.0));
+          float shadowStrength = mix(0.5, 0.8, sunAngle);
+          
+          // Add self-shadowing based on normal and light direction
+          float selfShadow = max(0.0, dot(vNormal, lightDirection));
+          shadow = mix(shadowStrength, 1.0, shadow * selfShadow);
+          
+          return shadow;
+        }
         
         void main() {
           // Sample sand texture
@@ -152,10 +218,24 @@ export class Terrain {
           float ao = dot(vNormal, vec3(0.0, 1.0, 0.0)) * 0.5 + 0.5;
           color *= ao;
           
-          // Add some specular highlights
-          vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+          // Calculate shadow
+          float shadow = getShadow();
+          
+          // Add some specular highlights based on sun angle
+          vec3 lightDir = normalize(lightDirection);
+          float sunAngle = dot(lightDir, vec3(0.0, 1.0, 0.0));
           float spec = pow(max(dot(reflect(-lightDir, vNormal), normalize(vPosition)), 0.0), 32.0);
-          color += spec * 0.1;
+          color += spec * 0.1 * max(0.0, sunAngle);
+          
+          // Apply shadow more subtly
+          color *= shadow;
+          
+          // Ensure minimum brightness
+          color = max(color, vec3(0.3));
+          
+          // Apply fog
+          float fogFactor = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+          color = mix(color, fogColor, fogFactor);
           
           gl_FragColor = vec4(color, 1.0);
         }
@@ -167,6 +247,13 @@ export class Terrain {
     this.mesh.position.y = 0;
     this.mesh.receiveShadow = true;
     this.mesh.castShadow = true;
+
+    // Configure shadow properties
+    this.mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
+      depthPacking: THREE.RGBADepthPacking,
+      map: this.uniforms.sandTexture.value,
+      alphaTest: 0.5,
+    });
   }
 
   public update(delta: number): void {

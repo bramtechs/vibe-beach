@@ -1,10 +1,12 @@
 import * as THREE from "three";
 import { Terrain } from "./Terrain";
+import SceneManager from "./SceneManager";
 
 class FirstPersonController {
   private camera: THREE.PerspectiveCamera;
   private scene: THREE.Scene;
   private terrain: Terrain;
+  private sceneManager: SceneManager;
 
   // Movement state
   private moveForward = false;
@@ -38,11 +40,13 @@ class FirstPersonController {
   constructor(
     camera: THREE.PerspectiveCamera,
     scene: THREE.Scene,
-    terrain: Terrain
+    terrain: Terrain,
+    sceneManager: SceneManager
   ) {
     this.camera = camera;
     this.scene = scene;
     this.terrain = terrain;
+    this.sceneManager = sceneManager;
 
     // Initialize controllers
     this.initPointerLock();
@@ -127,6 +131,10 @@ class FirstPersonController {
             this.moveUp = false;
             this.moveDown = false;
           }
+          break;
+        case "KeyT":
+          // Toggle wireframe mode
+          this.sceneManager.toggleWireframeMode();
           break;
       }
     };

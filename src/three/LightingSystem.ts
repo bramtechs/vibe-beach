@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export function createLights(renderer: THREE.WebGLRenderer): {
+export function createLights(): {
   ambientLight: THREE.AmbientLight;
   directionalLight: THREE.DirectionalLight;
   shadowLight: THREE.DirectionalLight;
@@ -14,23 +14,24 @@ export function createLights(renderer: THREE.WebGLRenderer): {
   directionalLight.castShadow = true;
 
   // Configure shadow properties for better quality
-  directionalLight.shadow.mapSize.width = 2048;
-  directionalLight.shadow.mapSize.height = 2048;
+  directionalLight.shadow.mapSize.width = 4096;
+  directionalLight.shadow.mapSize.height = 4096;
   directionalLight.shadow.camera.near = 0.5;
-  directionalLight.shadow.camera.far = 50;
-  directionalLight.shadow.camera.left = -20;
-  directionalLight.shadow.camera.right = 20;
-  directionalLight.shadow.camera.top = 20;
-  directionalLight.shadow.camera.bottom = -20;
-  directionalLight.shadow.bias = -0.0005;
+  directionalLight.shadow.camera.far = 500;
+  directionalLight.shadow.camera.left = -100;
+  directionalLight.shadow.camera.right = 100;
+  directionalLight.shadow.camera.top = 100;
+  directionalLight.shadow.camera.bottom = -100;
+  directionalLight.shadow.bias = -0.0001;
+  directionalLight.shadow.normalBias = 0.01;
+  directionalLight.shadow.radius = 2;
+
+  // Configure shadow camera to look at the center of the scene
+  directionalLight.target.position.set(0, 0, 0);
+  directionalLight.target.updateMatrixWorld();
 
   const shadowLight = new THREE.DirectionalLight(0xffffff, 1.5);
-  // opposite of directionalLight
-  shadowLight.position.set(
-    -directionalLight.position.x,
-    -directionalLight.position.y,
-    -directionalLight.position.z
-  );
+  shadowLight.position.copy(directionalLight.position);
   shadowLight.castShadow = true;
 
   return { ambientLight, directionalLight, shadowLight };

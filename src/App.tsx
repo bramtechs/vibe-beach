@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import SceneManager from "./three/SceneManager";
 import TimeOfDaySlider from "./components/TimeOfDaySlider";
+import FogDensitySlider from "./components/FogDensitySlider";
 
 function App() {
   const sceneManagerRef = useRef<SceneManager | null>(null);
@@ -31,12 +32,16 @@ function App() {
     sceneManagerRef.current?.setTimeOfDay(time);
   };
 
+  const handleFogDensityChange = (density: number) => {
+    sceneManagerRef.current?.setFogDensity(density);
+  };
+
   return (
     <div className="fixed inset-0 bg-black">
       <canvas id="scene-canvas" className="w-full h-full block" />
       <div className="absolute bottom-4 left-4 text-white bg-black/50 px-3 py-1 rounded text-sm">
-        Use WASD to move, mouse to look around, SPACE to jump, and F to toggle
-        fly mode
+        Use WASD to move, mouse to look around, SPACE to jump, F to toggle fly
+        mode, and T to toggle wireframe mode
         {window.innerWidth > 640 && (
           <span className="ml-2">(Q/E for up/down in fly mode)</span>
         )}
@@ -49,6 +54,7 @@ function App() {
           Reset Position
         </button>
         <TimeOfDaySlider onChange={handleTimeChange} />
+        <FogDensitySlider onChange={handleFogDensityChange} />
       </div>
     </div>
   );
