@@ -29,7 +29,7 @@ A modern, interactive web application built with React, TypeScript, and Three.js
 1. Clone the repository:
 
    ```bash
-   git clone [your-repository-url]
+   git clone https://github.com/bramtechs/vibe-beach
    cd vibe-beach
    ```
 
@@ -73,9 +73,13 @@ vibe-beach/
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+### 🤖 Contributing Rules
+
+- AI is your friend! Human-written code is discouraged.
+
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the GNU General Public License v3.0 (GPL v3) - see the LICENSE file for details.
 
 ## 🙏 Acknowledgments
 
