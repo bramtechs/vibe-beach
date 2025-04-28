@@ -7,6 +7,7 @@ import { Ocean } from "./Ocean";
 import { Terrain } from "./Terrain";
 import { Lighthouse } from "./Lighthouse";
 import { BeachChairs } from "./BeachChairs";
+import { Clouds } from "./Clouds";
 
 class SceneManager {
   private scene: THREE.Scene;
@@ -25,6 +26,7 @@ class SceneManager {
   private isWireframeMode: boolean = false;
   private lighthouse!: Lighthouse;
   private beachChairs!: BeachChairs;
+  private clouds!: Clouds;
 
   constructor() {
     // Initialize scene
@@ -119,6 +121,10 @@ class SceneManager {
 
     // Create palm trees
     this.createPalmTrees();
+
+    // Add clouds
+    this.clouds = new Clouds();
+    this.scene.add(this.clouds.getCloudGroup());
   }
 
   private createRockFormations(): void {
@@ -363,25 +369,24 @@ class SceneManager {
   }
 
   private animate = (): void => {
-    const delta = this.clock.getDelta();
+    this.animationFrameId = requestAnimationFrame(this.animate);
+
+    const deltaTime = this.clock.getDelta();
 
     // Update controller
-    this.controller.update(delta);
+    this.controller.update(deltaTime);
 
     // Update sand trails
-    this.sandTrailManager.update(delta, this.camera.position);
+    this.sandTrailManager.update(deltaTime, this.camera.position);
 
     // Update ocean
-    this.ocean.update(delta);
+    this.ocean.update(deltaTime);
 
-    // Update terrain
-    this.terrain.update(delta);
+    // Update clouds
+    this.clouds.update(deltaTime);
 
     // Render scene
     this.renderer.render(this.scene, this.camera);
-
-    // Continue animation loop
-    this.animationFrameId = requestAnimationFrame(this.animate);
   };
 
   public onWindowResize(): void {
