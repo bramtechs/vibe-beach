@@ -7,7 +7,7 @@ interface FogDensitySliderProps {
 const FogDensitySlider: React.FC<FogDensitySliderProps> = ({ onChange }) => {
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-white text-sm">Fog Density</label>
+      <label className="text-black text-sm">Fog Density</label>
       <input
         type="range"
         min="0"

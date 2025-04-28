@@ -8,4 +8,7 @@ export default defineConfig({
     exclude: ["lucide-react"],
   },
   base: "/vibe-beach/", // GitHub Pages base URL
+  define: {
+    "import.meta.env.BUILD_DATE": JSON.stringify(new Date().toISOString()),
+  },
 });

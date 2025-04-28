@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import SceneManager from "./three/SceneManager";
 import FogDensitySlider from "./components/FogDensitySlider";
 import FPSCounter from "./components/FPSCounter";
+import BuildDate from "./components/BuildDate";
 
 function App() {
   const sceneManagerRef = useRef<SceneManager | null>(null);
@@ -53,7 +54,8 @@ function App() {
       {isGuiVisible && (
         <div className="absolute bottom-4 left-4 text-white bg-black/50 px-4 py-2 rounded text-sm">
           Use WASD to move, mouse to look around, SPACE to jump, F to toggle fly
-          mode, T to toggle wireframe mode, and H to toggle GUI
+          mode, T to toggle wireframe mode, H to toggle GUI, and ESC to unlock
+          mouse
           {window.innerWidth > 640 && (
             <span className="ml-2">(Q/E for up/down in fly mode)</span>
           )}
@@ -61,6 +63,7 @@ function App() {
       )}
       {isGuiVisible && (
         <div className="absolute top-4 right-4 flex flex-col gap-4">
+          <BuildDate />
           <a
             href="https://github.com/bramtechs/vibe-beach"
             target="_blank"
