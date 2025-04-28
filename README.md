@@ -1,8 +1,27 @@
 # Vibe Beach 🏖️
 
+<img src="./misc/logo.png" alt="Screenshot 1" height="300" />
+
+## 🌐 Check it out!
+
+[https://bramtechs.github.io/vibe-beach/](https://bramtechs.github.io/vibe-beach/)
+
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td><img src="./misc/screenshot001.png" alt="Screenshot 1" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
+    <td><img src="./misc/screenshot002.png" alt="Screenshot 2" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
+  </tr>
+  <tr>
+    <td><img src="./misc/screenshot003.png" alt="Screenshot 3" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
+    <td><img src="./misc/screenshot004.png" alt="Screenshot 4" style="max-width: 100%; height: auto; object-fit: contain;" /></td>
+  </tr>
+</table>
+
 A modern, interactive web application built with React, TypeScript, and Three.js. Vibe Beach brings the beach experience to your screen with beautiful 3D visuals and smooth interactions.
 
-> 💻 **Development Note:** This project was generated with Bolt AI and then vibe-coded using Cursor IDE and Claude AI. Just for fun!
+> 💻 **Development Note:** This project was generated with Bolt AI and then vibe-coded using Cursor IDE and Claude AI. Just for fun! Do not take it seriously.
 
 ## 🚀 Features
 
@@ -75,7 +94,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### 🤖 Contributing Rules
 
-- AI is your friend! Human-written code is discouraged.
+- AI is your friend! Filthy human-written code is discouraged.
 
 ## 📄 License
 
@@ -88,3 +107,4 @@ This project is licensed under the GNU General Public License v3.0 (GPL v3) - se
 - React team for the amazing framework
 - Cursor IDE for the amazing development experience
 - Claude AI for the intelligent coding assistance
+- Polyhaven for the skybox textures
