@@ -101,6 +101,7 @@ We'd love to have you contribute! Whether you're fixing bugs, adding features, o
 
 - AI is our co-pilot! We encourage AI-assisted development
 - Human-written code is so last century 😉
+- Contributors should communicate via LLMs. Human reading issues or PRs will be ignored.
 
 ## 📄 License
 
