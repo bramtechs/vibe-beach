@@ -5,6 +5,8 @@ import { createSkybox } from "./Skybox";
 import { SandTrailManager } from "./SandTrails";
 import { Ocean } from "./Ocean";
 import { Terrain } from "./Terrain";
+import { Lighthouse } from "./Lighthouse";
+import { BeachChairs } from "./BeachChairs";
 
 class SceneManager {
   private scene: THREE.Scene;
@@ -21,6 +23,8 @@ class SceneManager {
   private shadowLight!: THREE.DirectionalLight;
   private timeOfDay: number = 12; // Default to noon
   private isWireframeMode: boolean = false;
+  private lighthouse!: Lighthouse;
+  private beachChairs!: BeachChairs;
 
   constructor() {
     // Initialize scene
@@ -86,33 +90,32 @@ class SceneManager {
   }
 
   private initScene(): void {
-    // Add terrain
-    this.terrain = new Terrain();
-    this.scene.add(this.terrain.getMesh());
-
-    // Add lights
+    // Add lights first
     const { ambientLight, directionalLight, shadowLight } = createLights();
     this.ambientLight = ambientLight;
     this.directionalLight = directionalLight;
     this.shadowLight = shadowLight;
     this.scene.add(ambientLight, directionalLight, shadowLight);
 
-    // Update terrain material with shadow information
-    const terrainMesh = this.terrain.getMesh();
-    if (terrainMesh.material instanceof THREE.ShaderMaterial) {
-      terrainMesh.material.uniforms.shadowMap.value =
-        directionalLight.shadow.map;
-      terrainMesh.material.uniforms.shadowMatrix.value =
-        directionalLight.shadow.matrix;
-      terrainMesh.material.uniforms.lightDirection.value =
-        directionalLight.position.clone().normalize();
-    }
+    // Add terrain after lights are set up
+    this.terrain = new Terrain(this.scene, this.camera);
+
+    // Add lighthouse to the center of the island
+    this.lighthouse = new Lighthouse(this.scene);
+    this.lighthouse.setPosition(0, this.terrain.getHeightAt(0, 0), 0);
+
+    // Update terrain uniforms with lighting information
+    this.terrain.updateUniforms(
+      directionalLight.position.clone().normalize(),
+      new THREE.Color(0x87ceeb),
+      0.01
+    );
+
+    // Add beach chairs
+    this.beachChairs = new BeachChairs(this.scene, this.terrain);
 
     // Create rock formations
     this.createRockFormations();
-
-    // Create sand dunes
-    this.createSandDunes();
 
     // Create palm trees
     this.createPalmTrees();
@@ -122,122 +125,159 @@ class SceneManager {
     // Create a group for rock formations
     const rockGroup = new THREE.Group();
 
-    // Create different rock sizes and shapes
-    const rockPositions = [
-      { x: 10, y: 0, z: -8, scale: 2 },
-      { x: -12, y: 0, z: 5, scale: 1.5 },
-      { x: 8, y: 0, z: 12, scale: 2.5 },
-      { x: -15, y: 0, z: -10, scale: 3 },
+    // Define cluster centers - increased number of clusters
+    const clusterCenters = [
+      { x: 10, y: 0, z: -8 },
+      { x: -12, y: 0, z: 5 },
+      { x: 8, y: 0, z: 12 },
+      { x: -15, y: 0, z: -10 },
+      { x: 5, y: 0, z: -15 },
+      { x: -8, y: 0, z: 10 },
+      { x: 12, y: 0, z: 8 },
+      { x: -15, y: 0, z: -5 },
+      { x: 0, y: 0, z: -20 },
+      { x: -20, y: 0, z: 0 },
+      { x: 20, y: 0, z: 0 },
+      { x: 0, y: 0, z: 20 },
     ];
 
-    rockPositions.forEach((pos) => {
-      // Create a rock using a dodecahedron for a more natural look
-      const geometry = new THREE.DodecahedronGeometry(pos.scale, 1);
-      const material = new THREE.MeshStandardMaterial({
-        color: 0x888888,
-        roughness: 0.9,
-        metalness: 0.1,
-      });
+    // For each cluster center, create multiple smaller rocks
+    clusterCenters.forEach((center) => {
+      // Create 3-5 rocks per cluster
+      const numRocks = Math.floor(Math.random() * 3) + 3;
 
-      const rock = new THREE.Mesh(geometry, material);
-      rock.position.set(pos.x, pos.y, pos.z);
-      rock.castShadow = true;
-      rock.receiveShadow = true;
+      for (let i = 0; i < numRocks; i++) {
+        // Random offset from cluster center (0.5 to 2 units)
+        const offsetX = (Math.random() - 0.5) * 3;
+        const offsetZ = (Math.random() - 0.5) * 3;
 
-      // Add some random rotation for natural look
-      rock.rotation.set(
-        Math.random() * Math.PI,
-        Math.random() * Math.PI,
-        Math.random() * Math.PI
-      );
+        // Smaller scale (0.3 to 0.8)
+        const scale = 0.3 + Math.random() * 0.5;
 
-      rockGroup.add(rock);
+        // Create a rock using a dodecahedron
+        const geometry = new THREE.DodecahedronGeometry(scale, 1);
+        const material = new THREE.MeshStandardMaterial({
+          color: 0x888888,
+          roughness: 0.9,
+          metalness: 0.1,
+        });
+
+        const rock = new THREE.Mesh(geometry, material);
+        rock.position.set(center.x + offsetX, center.y, center.z + offsetZ);
+        rock.castShadow = true;
+        rock.receiveShadow = true;
+
+        // Add some random rotation for natural look
+        rock.rotation.set(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI,
+          Math.random() * Math.PI
+        );
+
+        rockGroup.add(rock);
+      }
     });
 
     this.scene.add(rockGroup);
-  }
-
-  private createSandDunes(): void {
-    // Create a group for sand dunes
-    const duneGroup = new THREE.Group();
-
-    // Create different dune sizes and positions
-    const dunePositions = [
-      { x: 15, y: 0, z: 0, scale: 5 },
-      { x: -20, y: 0, z: -15, scale: 7 },
-      { x: 0, y: 0, z: 20, scale: 6 },
-      { x: -10, y: 0, z: -25, scale: 4 },
-    ];
-
-    dunePositions.forEach((pos) => {
-      // Create a dune using a sphere with modified geometry
-      const geometry = new THREE.SphereGeometry(
-        pos.scale,
-        32,
-        32,
-        0,
-        Math.PI * 2,
-        0,
-        Math.PI / 2
-      );
-      const material = new THREE.MeshStandardMaterial({
-        color: 0xf4d03f,
-        roughness: 0.9,
-        metalness: 0.0,
-      });
-
-      const dune = new THREE.Mesh(geometry, material);
-      dune.position.set(pos.x, pos.y, pos.z);
-      dune.rotation.x = -Math.PI / 2; // Rotate to lay flat
-      dune.castShadow = true;
-      dune.receiveShadow = true;
-
-      // Add some random rotation for natural look
-      dune.rotation.z = Math.random() * Math.PI * 2;
-
-      duneGroup.add(dune);
-    });
-
-    this.scene.add(duneGroup);
   }
 
   private createPalmTrees(): void {
     // Create a group for palm trees
     const palmGroup = new THREE.Group();
 
-    // Create different palm tree positions
+    // Create different palm tree positions - increased number of trees
     const palmPositions = [
       { x: 5, y: 0, z: -15 },
       { x: -8, y: 0, z: 10 },
       { x: 12, y: 0, z: 8 },
       { x: -15, y: 0, z: -5 },
+      { x: 10, y: 0, z: -8 },
+      { x: -12, y: 0, z: 5 },
+      { x: 8, y: 0, z: 12 },
+      { x: -15, y: 0, z: -10 },
+      { x: 0, y: 0, z: -20 },
+      { x: -20, y: 0, z: 0 },
+      { x: 20, y: 0, z: 0 },
+      { x: 0, y: 0, z: 20 },
+      { x: 15, y: 0, z: -15 },
+      { x: -15, y: 0, z: 15 },
+      { x: 15, y: 0, z: 15 },
+      { x: -15, y: 0, z: -15 },
     ];
 
     palmPositions.forEach((pos) => {
-      // Create trunk
-      const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.3, 3, 8);
+      // Create trunk with segments for a more natural look
+      const trunkHeight = 4;
+      const trunkRadius = 0.3;
+      const trunkSegments = 8;
+      const trunkGeometry = new THREE.CylinderGeometry(
+        trunkRadius,
+        trunkRadius * 1.2,
+        trunkHeight,
+        trunkSegments
+      );
+
+      // Add some texture to the trunk
       const trunkMaterial = new THREE.MeshStandardMaterial({
         color: 0x8b4513,
         roughness: 0.9,
+        bumpScale: 0.1,
       });
+
       const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-      trunk.position.set(pos.x, 1.5, pos.z);
+      trunk.position.set(0, trunkHeight / 2, 0); // Position relative to group
       trunk.castShadow = true;
       trunk.receiveShadow = true;
 
-      // Create leaves
-      const leavesGeometry = new THREE.ConeGeometry(1.5, 3, 8);
-      const leavesMaterial = new THREE.MeshStandardMaterial({
-        color: 0x228b22,
-        roughness: 0.9,
-      });
-      const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-      leaves.position.set(pos.x, 4, pos.z);
-      leaves.castShadow = true;
-      leaves.receiveShadow = true;
+      // Create fronds
+      const frondGroup = new THREE.Group();
+      const numFronds = 8;
+      const frondLength = 2;
+      const frondWidth = 0.8;
 
-      palmGroup.add(trunk);
-      palmGroup.add(leaves);
+      for (let i = 0; i < numFronds; i++) {
+        // Create individual frond
+        const frondGeometry = new THREE.PlaneGeometry(frondLength, frondWidth);
+        const frondMaterial = new THREE.MeshStandardMaterial({
+          color: 0x228b22,
+          side: THREE.DoubleSide,
+          roughness: 0.9,
+        });
+
+        const frond = new THREE.Mesh(frondGeometry, frondMaterial);
+
+        // Position and rotate frond relative to the trunk top
+        const angle = (i / numFronds) * Math.PI * 2;
+        const radius = 0.5;
+        frond.position.set(
+          Math.cos(angle) * radius,
+          trunkHeight, // Position at top of trunk
+          Math.sin(angle) * radius
+        );
+
+        // Rotate frond to point outward and slightly downward
+        frond.rotation.y = angle;
+        frond.rotation.x = Math.PI / 4; // Tilt fronds downward
+
+        // Add some random variation
+        frond.rotation.z = (Math.random() - 0.5) * 0.2;
+        frond.scale.y = 0.8 + Math.random() * 0.4;
+
+        frond.castShadow = true;
+        frond.receiveShadow = true;
+        frondGroup.add(frond);
+      }
+
+      // Create the palm tree group
+      const palmTree = new THREE.Group();
+      palmTree.position.set(pos.x, 0, pos.z); // Set the group's position
+      palmTree.add(trunk);
+      palmTree.add(frondGroup);
+
+      // Add some random rotation to the whole tree
+      palmTree.rotation.y = Math.random() * Math.PI * 2;
+
+      palmGroup.add(palmTree);
     });
 
     this.scene.add(palmGroup);
@@ -252,11 +292,12 @@ class SceneManager {
     if (this.scene.fog instanceof THREE.FogExp2) {
       this.scene.fog.density = density;
 
-      // Update terrain fog uniforms
-      const terrainMesh = this.terrain.getMesh();
-      if (terrainMesh.material instanceof THREE.ShaderMaterial) {
-        terrainMesh.material.uniforms.fogDensity.value = density;
-      }
+      // Update terrain uniforms with lighting information
+      this.terrain.updateUniforms(
+        this.directionalLight.position.clone().normalize(),
+        new THREE.Color(0x87ceeb),
+        density
+      );
     }
   }
 
@@ -297,18 +338,17 @@ class SceneManager {
       this.scene.fog.density = fogDensity;
     }
 
-    // Update terrain fog uniforms
-    const terrainMesh = this.terrain.getMesh();
-    if (terrainMesh.material instanceof THREE.ShaderMaterial) {
-      terrainMesh.material.uniforms.fogColor.value.setHex(fogColor);
-      terrainMesh.material.uniforms.fogDensity.value = fogDensity;
-    }
+    // Update terrain uniforms
+    this.terrain.updateUniforms(
+      this.directionalLight.position.clone().normalize(),
+      new THREE.Color(0x87ceeb),
+      0.01
+    );
 
     // Update shadow light to match sun position
     this.shadowLight.position.copy(this.directionalLight.position);
     this.shadowLight.intensity = isDay ? 1.5 : 0.2;
 
-    // Update shadow camera frustum based on sun position
     const shadowCamera = this.directionalLight.shadow.camera;
     const sunAngle = Math.atan2(sunY, Math.sqrt(sunX * sunX + sunZ * sunZ));
 
@@ -337,17 +377,6 @@ class SceneManager {
     // Update terrain
     this.terrain.update(delta);
 
-    // Update terrain shadow uniforms
-    const terrainMesh = this.terrain.getMesh();
-    if (terrainMesh.material instanceof THREE.ShaderMaterial) {
-      terrainMesh.material.uniforms.shadowMap.value =
-        this.directionalLight.shadow.map;
-      terrainMesh.material.uniforms.shadowMatrix.value =
-        this.directionalLight.shadow.matrix;
-      terrainMesh.material.uniforms.lightDirection.value =
-        this.directionalLight.position.clone().normalize();
-    }
-
     // Render scene
     this.renderer.render(this.scene, this.camera);
 
@@ -374,17 +403,12 @@ class SceneManager {
       cancelAnimationFrame(this.animationFrameId);
     }
 
-    // Dispose controller
-    this.controller.dispose();
-
-    // Dispose sand trail manager
-    this.sandTrailManager.dispose();
-
-    // Dispose ocean
-    this.ocean.dispose();
-
-    // Dispose terrain
+    // Dispose of all scene objects
     this.terrain.dispose();
+    this.ocean.dispose();
+    this.lighthouse.dispose();
+    this.beachChairs.dispose();
+    this.sandTrailManager.dispose();
 
     // Dispose renderer
     this.renderer.dispose();

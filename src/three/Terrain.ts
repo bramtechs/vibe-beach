@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export class Terrain {
+class TerrainChunk {
   private mesh: THREE.Mesh;
   private uniforms: {
     time: { value: number };
@@ -12,19 +12,45 @@ export class Terrain {
     sandColor3: { value: THREE.Color };
     sandColor4: { value: THREE.Color };
     sandTexture: { value: THREE.Texture };
-    shadowMap: { value: THREE.Texture };
-    shadowMatrix: { value: THREE.Matrix4 };
     lightDirection: { value: THREE.Vector3 };
     fogColor: { value: THREE.Color };
     fogDensity: { value: number };
+    chunkPosition: { value: THREE.Vector2 };
+    chunkSize: { value: number };
   };
+  private position: THREE.Vector2;
+  private size: number;
+  private currentLOD: number;
+  private geometries: THREE.PlaneGeometry[];
+  private static readonly LOD_LEVELS = [
+    { resolution: 64, distance: 0 }, // Low detail
+    { resolution: 32, distance: 24 }, // Very low detail
+  ];
+  private lastUpdateTime: number = 0;
+  private updateInterval: number = 0;
 
-  constructor() {
-    // Create terrain geometry with more segments
-    const geometry = new THREE.PlaneGeometry(128, 128, 2048, 2048);
-    geometry.rotateX(-Math.PI / 2);
+  constructor(
+    position: THREE.Vector2,
+    size: number,
+    sandTexture: THREE.Texture
+  ) {
+    this.position = position;
+    this.size = size;
+    this.currentLOD = 0;
 
-    // Create shader uniforms with adjusted values
+    // Create geometries for all LOD levels
+    this.geometries = TerrainChunk.LOD_LEVELS.map((level) => {
+      const geometry = new THREE.PlaneGeometry(
+        size,
+        size,
+        level.resolution,
+        level.resolution
+      );
+      geometry.rotateX(-Math.PI / 2);
+      return geometry;
+    });
+
+    // Create shader uniforms
     this.uniforms = {
       time: { value: 0 },
       heightScale: { value: 10.0 },
@@ -34,50 +60,31 @@ export class Terrain {
       sandColor2: { value: new THREE.Color(0xf1c40f) },
       sandColor3: { value: new THREE.Color(0xf39c12) },
       sandColor4: { value: new THREE.Color(0xe67e22) },
-      sandTexture: { value: new THREE.Texture() },
-      shadowMap: { value: new THREE.Texture() },
-      shadowMatrix: { value: new THREE.Matrix4() },
+      sandTexture: { value: sandTexture },
       lightDirection: { value: new THREE.Vector3(1, 1, 1) },
       fogColor: { value: new THREE.Color(0x87ceeb) },
       fogDensity: { value: 0.01 },
+      chunkPosition: { value: new THREE.Vector2(position.x, position.y) },
+      chunkSize: { value: size },
     };
-
-    // Load sand texture
-    const textureLoader = new THREE.TextureLoader();
-    textureLoader.load("/textures/sand.jpg", (texture) => {
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
-      texture.repeat.set(20, 20);
-      texture.minFilter = THREE.LinearMipMapLinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      this.uniforms.sandTexture.value = texture;
-    });
 
     // Create shader material
     const material = new THREE.ShaderMaterial({
-      uniforms: {
-        ...this.uniforms,
-        shadowMap: { value: new THREE.Texture() },
-        shadowMatrix: { value: new THREE.Matrix4() },
-        lightDirection: { value: new THREE.Vector3(1, 1, 1) },
-        fogColor: { value: new THREE.Color(0x87ceeb) },
-        fogDensity: { value: 0.01 },
-      },
+      uniforms: this.uniforms,
       vertexShader: `
         uniform float time;
         uniform float noiseScale;
         uniform float heightScale;
         uniform float noiseStrength;
-        uniform mat4 shadowMatrix;
+        uniform vec2 chunkPosition;
+        uniform float chunkSize;
         
         varying vec3 vNormal;
         varying vec3 vPosition;
         varying float vHeight;
         varying vec2 vUv;
-        varying vec4 vShadowCoord;
         varying float vFogDepth;
         
-        // Improved noise function
         float random(vec2 st) {
           return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
         }
@@ -112,46 +119,43 @@ export class Terrain {
         void main() {
           vec3 pos = position;
           
+          // Calculate world position
+          vec2 worldPos = pos.xz + chunkPosition;
+          
           // Calculate distance from center
-          float distFromCenter = length(pos.xz);
-          float maxDist = 50.0; // Half of the plane size
+          float distFromCenter = length(worldPos);
+          float maxDist = 50.0;
           
           // Generate height using multiple octaves of noise
-          vec2 noisePos = pos.xz * noiseScale;
+          vec2 noisePos = worldPos * noiseScale;
           float height = fbm(noisePos) * heightScale;
           
           // Add some variation based on position
-          height += sin(pos.x * 0.1) * cos(pos.z * 0.1) * 0.2;
+          height += sin(worldPos.x * 0.1) * cos(worldPos.y * 0.1) * 0.2;
           
           // Create a gradual slope towards the ocean
           float slopeFactor = smoothstep(0.0, maxDist, distFromCenter);
-          height = mix(height, -5.0, slopeFactor); // Sink to -5 units below sea level
+          height = mix(height, -5.0, slopeFactor);
           
           // Apply height to position
           pos.y += height;
           
           // Calculate normal
           vec2 eps = vec2(0.01, 0.0);
-          float hL = fbm(noisePos - eps.xy) * heightScale;
-          float hR = fbm(noisePos + eps.xy) * heightScale;
-          float hD = fbm(noisePos - eps.yx) * heightScale;
-          float hU = fbm(noisePos + eps.yx) * heightScale;
+          float hL = fbm((worldPos - eps.xy) * noiseScale) * heightScale;
+          float hR = fbm((worldPos + eps.xy) * noiseScale) * heightScale;
+          float hD = fbm((worldPos - eps.yx) * noiseScale) * heightScale;
+          float hU = fbm((worldPos + eps.yx) * noiseScale) * heightScale;
           
-          // Adjust normals for the slope
           vec3 normal = normalize(vec3(hL - hR, 2.0, hD - hU));
-          normal.y += slopeFactor * 0.5; // Flatten normals near the ocean
+          normal.y += slopeFactor * 0.5;
           normal = normalize(normal);
           
           vNormal = normal;
           vPosition = pos;
           vHeight = height;
+          vUv = worldPos * 1.1;
           
-          // Map UVs to world space coordinates
-          vUv = pos.xz * 1.1;
-          
-          vShadowCoord = shadowMatrix * vec4(pos, 1.0);
-          
-          // Calculate model-view position for fog
           vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
           vFogDepth = -mvPosition.z;
           
@@ -160,7 +164,6 @@ export class Terrain {
       `,
       fragmentShader: `
         uniform sampler2D sandTexture;
-        uniform sampler2D shadowMap;
         uniform vec3 lightDirection;
         uniform vec3 fogColor;
         uniform float fogDensity;
@@ -169,69 +172,23 @@ export class Terrain {
         varying vec3 vPosition;
         varying float vHeight;
         varying vec2 vUv;
-        varying vec4 vShadowCoord;
         varying float vFogDepth;
         
-        float getShadow() {
-          vec3 shadowCoord = vShadowCoord.xyz / vShadowCoord.w;
-          
-          // Check if the fragment is outside the shadow map
-          if (shadowCoord.z < 0.0 || shadowCoord.z > 1.0) {
-            return 1.0;
-          }
-          
-          shadowCoord = shadowCoord * 0.5 + 0.5;
-          
-          float shadow = 0.0;
-          float bias = 0.001;
-          
-          // PCF shadow sampling with larger kernel for softer shadows
-          vec2 texelSize = 1.0 / vec2(4096.0, 4096.0);
-          for(int x = -2; x <= 2; x++) {
-            for(int y = -2; y <= 2; y++) {
-              float depth = texture2D(shadowMap, shadowCoord.xy + vec2(x, y) * texelSize).r;
-              shadow += shadowCoord.z - bias > depth ? 0.0 : 1.0;
-            }
-          }
-          shadow /= 25.0;
-          
-          // Make shadows more subtle and vary based on sun angle
-          float sunAngle = dot(lightDirection, vec3(0.0, 1.0, 0.0));
-          float shadowStrength = mix(0.5, 0.8, sunAngle);
-          
-          // Add self-shadowing based on normal and light direction
-          float selfShadow = max(0.0, dot(vNormal, lightDirection));
-          shadow = mix(shadowStrength, 1.0, shadow * selfShadow);
-          
-          return shadow;
-        }
-        
         void main() {
-          // Sample sand texture
           vec4 sandColor = texture2D(sandTexture, vUv);
           
-          // Add some color variation based on height
           float heightFactor = smoothstep(0.0, 1.0, vHeight / 2.0);
-          vec3 color = mix(sandColor.rgb, sandColor.rgb * 0.8, heightFactor);
+          vec3 color = mix(sandColor.rgb, sandColor.rgb * 0.9, heightFactor);
           
-          // Add some ambient occlusion based on normal
-          float ao = dot(vNormal, vec3(0.0, 1.0, 0.0)) * 0.5 + 0.5;
-          color *= ao;
+          // Enhanced lighting
+          float diffuse = max(0.0, dot(vNormal, normalize(lightDirection)));
+          color *= diffuse * 0.8 + 0.5;
           
-          // Calculate shadow
-          float shadow = getShadow();
-          
-          // Add some specular highlights based on sun angle
-          vec3 lightDir = normalize(lightDirection);
-          float sunAngle = dot(lightDir, vec3(0.0, 1.0, 0.0));
-          float spec = pow(max(dot(reflect(-lightDir, vNormal), normalize(vPosition)), 0.0), 32.0);
-          color += spec * 0.1 * max(0.0, sunAngle);
-          
-          // Apply shadow more subtly
-          color *= shadow;
-          
-          // Ensure minimum brightness
-          color = max(color, vec3(0.3));
+          // Add some specular highlights
+          vec3 viewDir = normalize(-vPosition);
+          vec3 reflectDir = reflect(-normalize(lightDirection), vNormal);
+          float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+          color += spec * 0.15;
           
           // Apply fog
           float fogFactor = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
@@ -243,36 +200,252 @@ export class Terrain {
     });
 
     // Create mesh
-    this.mesh = new THREE.Mesh(geometry, material);
-    this.mesh.position.y = 0;
+    this.mesh = new THREE.Mesh(this.geometries[0], material);
+    this.mesh.position.set(position.x, 0, position.y);
     this.mesh.receiveShadow = true;
-    this.mesh.castShadow = true;
+    this.mesh.castShadow = false; // Disable shadow casting
 
-    // Configure shadow properties
-    this.mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
-      depthPacking: THREE.RGBADepthPacking,
-      map: this.uniforms.sandTexture.value,
-      alphaTest: 0.5,
-    });
+    // Remove custom depth material since we're not using shadows
+    this.mesh.customDepthMaterial = undefined;
   }
 
-  public update(delta: number): void {
-    this.uniforms.time.value += delta;
+  public updateLOD(cameraPosition: THREE.Vector3): void {
+    const distance = new THREE.Vector2(
+      cameraPosition.x - this.position.x,
+      cameraPosition.z - this.position.y
+    ).length();
+
+    // Find appropriate LOD level based on distance
+    let newLOD = 0;
+    for (let i = 0; i < TerrainChunk.LOD_LEVELS.length; i++) {
+      if (distance >= TerrainChunk.LOD_LEVELS[i].distance) {
+        newLOD = i;
+      } else {
+        break;
+      }
+    }
+
+    // Update geometry if LOD changed
+    if (newLOD !== this.currentLOD) {
+      this.mesh.geometry = this.geometries[newLOD];
+      this.currentLOD = newLOD;
+    }
+
+    // Set update interval based on distance
+    this.updateInterval = Math.max(0.1, distance * 0.01);
+  }
+
+  public shouldUpdate(currentTime: number): boolean {
+    return currentTime - this.lastUpdateTime >= this.updateInterval;
+  }
+
+  public update(delta: number, currentTime: number): void {
+    if (this.shouldUpdate(currentTime)) {
+      this.uniforms.time.value += delta;
+      this.lastUpdateTime = currentTime;
+    }
   }
 
   public getMesh(): THREE.Mesh {
     return this.mesh;
   }
 
+  public getPosition(): THREE.Vector2 {
+    return this.position;
+  }
+
+  public getSize(): number {
+    return this.size;
+  }
+
+  public updateUniforms(
+    lightDirection: THREE.Vector3,
+    fogColor: THREE.Color,
+    fogDensity: number
+  ): void {
+    this.uniforms.lightDirection.value = lightDirection;
+    this.uniforms.fogColor.value = fogColor;
+    this.uniforms.fogDensity.value = fogDensity;
+  }
+
+  public dispose(): void {
+    // Dispose all geometries
+    this.geometries.forEach((geometry) => geometry.dispose());
+
+    if (this.mesh.material instanceof THREE.ShaderMaterial) {
+      this.mesh.material.dispose();
+    }
+  }
+}
+
+export class Terrain {
+  private chunks: Map<string, TerrainChunk>;
+  private scene: THREE.Scene;
+  private camera: THREE.PerspectiveCamera;
+  private sandTexture: THREE.Texture;
+  private chunkSize: number;
+  private viewDistance: number;
+  private loadedChunks: Set<string>;
+  private frustum: THREE.Frustum;
+  private projScreenMatrix: THREE.Matrix4;
+  private updateQueue: TerrainChunk[] = [];
+  private readonly MAX_UPDATES_PER_FRAME = 4;
+  private lastChunkUpdateTime: number = 0;
+  private readonly CHUNK_UPDATE_INTERVAL = 0.1; // seconds
+
+  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+    this.chunks = new Map();
+    this.scene = scene;
+    this.camera = camera;
+    this.chunkSize = 32;
+    this.viewDistance = 96; // Reduced view distance
+    this.loadedChunks = new Set();
+    this.frustum = new THREE.Frustum();
+    this.projScreenMatrix = new THREE.Matrix4();
+
+    // Load sand texture
+    const textureLoader = new THREE.TextureLoader();
+    this.sandTexture = textureLoader.load("/textures/sand.jpg");
+    this.sandTexture.wrapS = THREE.RepeatWrapping;
+    this.sandTexture.wrapT = THREE.RepeatWrapping;
+    this.sandTexture.repeat.set(20, 20);
+    this.sandTexture.minFilter = THREE.LinearMipMapLinearFilter;
+    this.sandTexture.magFilter = THREE.LinearFilter;
+
+    // Initialize chunks around the camera
+    this.updateChunks();
+  }
+
+  public update(delta: number): void {
+    const currentTime = performance.now() / 1000;
+
+    // Update frustum less frequently
+    if (currentTime - this.lastChunkUpdateTime >= this.CHUNK_UPDATE_INTERVAL) {
+      this.projScreenMatrix.multiplyMatrices(
+        this.camera.projectionMatrix,
+        this.camera.matrixWorldInverse
+      );
+      this.frustum.setFromProjectionMatrix(this.projScreenMatrix);
+      this.updateChunks();
+      this.lastChunkUpdateTime = currentTime;
+    }
+
+    // Process chunk updates in batches
+    this.updateQueue = Array.from(this.chunks.values())
+      .filter((chunk) => this.isChunkVisible(chunk))
+      .sort((a, b) => {
+        const distA = new THREE.Vector2(
+          this.camera.position.x - a.getPosition().x,
+          this.camera.position.z - a.getPosition().y
+        ).length();
+        const distB = new THREE.Vector2(
+          this.camera.position.x - b.getPosition().x,
+          this.camera.position.z - b.getPosition().y
+        ).length();
+        return distA - distB;
+      });
+
+    // Update LOD for visible chunks
+    for (const chunk of this.updateQueue) {
+      chunk.updateLOD(this.camera.position);
+    }
+
+    // Process updates in batches
+    const updatesThisFrame = Math.min(
+      this.MAX_UPDATES_PER_FRAME,
+      this.updateQueue.length
+    );
+
+    for (let i = 0; i < updatesThisFrame; i++) {
+      const chunk = this.updateQueue[i];
+      chunk.update(delta, currentTime);
+    }
+  }
+
+  private updateChunks(): void {
+    const cameraPosition = new THREE.Vector2(
+      this.camera.position.x,
+      this.camera.position.z
+    );
+
+    // Calculate chunk coordinates around camera
+    const startX = Math.floor(
+      (cameraPosition.x - this.viewDistance) / this.chunkSize
+    );
+    const endX = Math.ceil(
+      (cameraPosition.x + this.viewDistance) / this.chunkSize
+    );
+    const startZ = Math.floor(
+      (cameraPosition.y - this.viewDistance) / this.chunkSize
+    );
+    const endZ = Math.ceil(
+      (cameraPosition.y + this.viewDistance) / this.chunkSize
+    );
+
+    // Load new chunks
+    for (let x = startX; x <= endX; x++) {
+      for (let z = startZ; z <= endZ; z++) {
+        const chunkKey = `${x},${z}`;
+        const chunkPos = new THREE.Vector2(
+          x * this.chunkSize,
+          z * this.chunkSize
+        );
+
+        if (!this.chunks.has(chunkKey)) {
+          const chunk = new TerrainChunk(
+            chunkPos,
+            this.chunkSize,
+            this.sandTexture
+          );
+          this.chunks.set(chunkKey, chunk);
+          this.scene.add(chunk.getMesh());
+        }
+      }
+    }
+
+    // Unload distant chunks
+    for (const [key, chunk] of this.chunks.entries()) {
+      const distance = cameraPosition.distanceTo(chunk.getPosition());
+      if (distance > this.viewDistance * 1.5) {
+        this.scene.remove(chunk.getMesh());
+        chunk.dispose();
+        this.chunks.delete(key);
+      }
+    }
+  }
+
+  private isChunkVisible(chunk: TerrainChunk): boolean {
+    const chunkBox = new THREE.Box3();
+    const chunkSize = chunk.getSize();
+    const chunkPos = chunk.getPosition();
+
+    chunkBox.setFromCenterAndSize(
+      new THREE.Vector3(chunkPos.x, 0, chunkPos.y),
+      new THREE.Vector3(chunkSize, 20, chunkSize)
+    );
+
+    return this.frustum.intersectsBox(chunkBox);
+  }
+
   public getHeightAt(x: number, z: number): number {
+    // Find the chunk containing the point
+    const chunkX = Math.floor(x / this.chunkSize);
+    const chunkZ = Math.floor(z / this.chunkSize);
+    const chunkKey = `${chunkX},${chunkZ}`;
+    const chunk = this.chunks.get(chunkKey);
+
+    if (!chunk) {
+      return 0;
+    }
+
     // Sample the terrain height using the same noise function as the shader
-    const noiseScale = this.uniforms.noiseScale.value;
-    const heightScale = this.uniforms.heightScale.value;
-    const noiseStrength = this.uniforms.noiseStrength.value;
+    const noiseScale = 0.02;
+    const heightScale = 10.0;
+    const noiseStrength = 0.8;
 
     // Calculate distance from center
     const distFromCenter = Math.sqrt(x * x + z * z);
-    const maxDist = 50.0; // Half of the plane size
+    const maxDist = 50.0;
 
     // Generate height using multiple octaves of noise
     const noisePos = new THREE.Vector2(x, z).multiplyScalar(noiseScale);
@@ -283,7 +456,7 @@ export class Terrain {
 
     // Create a gradual slope towards the ocean
     const slopeFactor = this.smoothstep(0.0, maxDist, distFromCenter);
-    height = this.mix(height, -5.0, slopeFactor); // Sink to -5 units below sea level
+    height = this.mix(height, -5.0, slopeFactor);
 
     return height;
   }
@@ -335,13 +508,22 @@ export class Terrain {
     return t * t * (3 - 2 * t);
   }
 
+  public updateUniforms(
+    lightDirection: THREE.Vector3,
+    fogColor: THREE.Color,
+    fogDensity: number
+  ): void {
+    for (const chunk of this.chunks.values()) {
+      chunk.updateUniforms(lightDirection, fogColor, fogDensity);
+    }
+  }
+
   public dispose(): void {
-    this.mesh.geometry.dispose();
-    if (this.mesh.material instanceof THREE.ShaderMaterial) {
-      this.mesh.material.dispose();
+    for (const chunk of this.chunks.values()) {
+      this.scene.remove(chunk.getMesh());
+      chunk.dispose();
     }
-    if (this.uniforms.sandTexture.value) {
-      this.uniforms.sandTexture.value.dispose();
-    }
+    this.chunks.clear();
+    this.sandTexture.dispose();
   }
 }

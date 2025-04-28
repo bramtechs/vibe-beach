@@ -29,7 +29,7 @@ export class Ocean {
       noiseScale: { value: 0.05 },
       noiseStrength: { value: 0.3 },
       waterColor: { value: new THREE.Color(0x87ceeb) },
-      waterOpacity: { value: 0.4 },
+      waterOpacity: { value: 0.2 },
       maxDepth: { value: 20.0 },
     };
 
@@ -216,6 +216,9 @@ export class Ocean {
           gl_FragColor = vec4(color, waterOpacity);
         }
       `,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
     });
 
     // Create mesh
