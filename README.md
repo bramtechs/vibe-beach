@@ -57,13 +57,15 @@ The island features a jukebox with five amazing tracks that you can listen to wh
 
 The soundtrack includes these amazing tracks:
 
-- [Sunset Serenade](./public/ost/Vibe%20Beach.mp3)
-- [Midnight Tide](./public/ost/Goth%20Vibe%20Beach.mp3)
-- [Der Strand lebt](./public/ost/German%20Beach.mp3)
-- [Vibu Bīchi☆Etānaru - ヴィブビーチ ☆ エターナル](./public/ost/Weeb%20Beach.mp3)
-- [Thunder Beach](./public/ost/Metal%20Beach.mp3)
-- [Strandvibes](./public/ost/Strandvibes.mp3)
-- [Swag In De Lucht](./public/ost/Swag%20Beach.mp3)
+> 🎵 **Click the links below to download the tracks:**
+
+- [Sunset Serenade](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Vibe%20Beach.mp3)
+- [Midnight Tide](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Goth%20Vibe%20Beach.mp3)
+- [Der Strand lebt](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/German%20Beach.mp3)
+- [Vibu Bīchi☆Etānaru - ヴィブビーチ ☆ エターナル](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Weeb%20Beach.mp3)
+- [Thunder Beach](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Metal%20Beach.mp3)
+- [Strandvibes](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Strandvibes.mp3)
+- [Swag In De Lucht](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Swag%20Beach.mp3)
 
 > 💡 **Pro Tip:** For the best experience, launch the application and listen to the music through the 3D jukebox in the scene. The positional audio system creates an immersive experience where the music volume changes based on your distance from the jukebox!
 
