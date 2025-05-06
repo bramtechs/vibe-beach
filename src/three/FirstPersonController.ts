@@ -155,10 +155,6 @@ class FirstPersonController {
         case "KeyT":
           this.sceneManager.toggleWireframeMode();
           break;
-        case "KeyP":
-          // Toggle jukebox play/pause from anywhere
-          this.jukebox.togglePlay();
-          break;
         case "KeyN":
           // Next song from anywhere
           this.jukebox.nextSong();

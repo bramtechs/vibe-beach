@@ -29,8 +29,11 @@ function App() {
         setIsGuiVisible((prev) => !prev);
       }
       if (event.code === "KeyP") {
-        setIsMuted((prev) => !prev);
-        sceneManagerRef.current?.getJukebox()?.togglePlay();
+        const jukebox = sceneManagerRef.current?.getJukebox();
+        if (jukebox) {
+          jukebox.togglePlay();
+          setIsMuted(jukebox.getMutedState());
+        }
       }
     };
 
@@ -63,8 +66,11 @@ function App() {
   };
 
   const handleVolumeChange = (volume: number) => {
-    sceneManagerRef.current?.getJukebox()?.setVolume(volume);
-    setIsMuted(volume === 0);
+    const jukebox = sceneManagerRef.current?.getJukebox();
+    if (jukebox) {
+      jukebox.setVolume(volume);
+      setIsMuted(jukebox.getMutedState());
+    }
   };
 
   return (

@@ -144,6 +144,7 @@ class SceneManager {
       jukeboxPosition.z
     );
     this.jukebox.setPosition(jukeboxPosition);
+    this.jukebox.setAudioListener(this.camera);
   }
 
   private createRockFormations(): void {

@@ -16,6 +16,7 @@ export class Jukebox {
   private audio: THREE.Audio;
   private isPlaying: boolean = false;
   private isMuted: boolean = false;
+  private lastVolume: number = 0.3; // Store the last non-zero volume
   private currentSong: number = Math.floor(Math.random() * 5); // Random song index
   private songs: string[] = [
     "ost/Vibe Beach.mp3",
@@ -219,14 +220,18 @@ export class Jukebox {
   public togglePlay(): void {
     this.isMuted = !this.isMuted;
     if (this.isMuted) {
+      this.lastVolume = this.audio.getVolume(); // Store current volume before muting
       this.audio.setVolume(0);
     } else {
-      this.audio.setVolume(1.0);
+      this.audio.setVolume(this.lastVolume);
     }
   }
 
   public setVolume(volume: number): void {
     this.audio.setVolume(volume);
+    if (volume > 0) {
+      this.lastVolume = volume; // Update last volume when setting a non-zero volume
+    }
     // Update muted state based on volume
     this.isMuted = volume === 0;
   }
@@ -256,5 +261,13 @@ export class Jukebox {
     distance: number = 3
   ): boolean {
     return this.jukeboxGroup.position.distanceTo(playerPosition) < distance;
+  }
+
+  public setAudioListener(camera: THREE.Camera): void {
+    camera.add(this.audioListener);
+  }
+
+  public getMutedState(): boolean {
+    return this.isMuted;
   }
 }
