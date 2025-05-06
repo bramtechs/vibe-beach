@@ -11,6 +11,7 @@ function App() {
   const [isGuiVisible, setIsGuiVisible] = useState(true);
   const [currentSong, setCurrentSong] = useState<string>("");
   const [showSongTitle, setShowSongTitle] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
     const sceneManager = new SceneManager();
@@ -25,6 +26,9 @@ function App() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code === "KeyH") {
         setIsGuiVisible((prev) => !prev);
+      }
+      if (event.code === "KeyP") {
+        setIsMuted((prev) => !prev);
       }
     };
 
@@ -124,7 +128,11 @@ function App() {
           <FogDensitySlider onChange={handleFogDensityChange} />
         </div>
       )}
-      <SongTitle title={currentSong} isVisible={showSongTitle} />
+      <SongTitle
+        title={currentSong}
+        isVisible={showSongTitle}
+        isMuted={isMuted}
+      />
     </div>
   );
 }
