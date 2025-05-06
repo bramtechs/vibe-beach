@@ -314,6 +314,7 @@ export class Terrain {
   private lastChunkUpdateTime: number = 0;
   private readonly CHUNK_UPDATE_INTERVAL = 0.1; // seconds
   private baseHeight: number;
+  private isWireframeMode: boolean = false;
 
   constructor(
     scene: THREE.Scene,
@@ -584,5 +585,21 @@ export class Terrain {
     }
     this.chunks.clear();
     this.sandTexture.dispose();
+  }
+
+  public setWireframeMode(enabled: boolean): void {
+    this.isWireframeMode = enabled;
+    this.chunks.forEach((chunk) => {
+      const material = chunk.getMesh().material;
+      if (material instanceof THREE.MeshStandardMaterial) {
+        material.wireframe = enabled;
+      } else if (Array.isArray(material)) {
+        material.forEach((mat) => {
+          if (mat instanceof THREE.MeshStandardMaterial) {
+            mat.wireframe = enabled;
+          }
+        });
+      }
+    });
   }
 }

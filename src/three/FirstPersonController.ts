@@ -1,12 +1,14 @@
 import * as THREE from "three";
 import { Terrain } from "./Terrain";
 import SceneManager from "./SceneManager";
+import { Jukebox } from "./Jukebox";
 
 class FirstPersonController {
   private camera: THREE.PerspectiveCamera;
   private scene: THREE.Scene;
   private terrain: Terrain;
   private sceneManager: SceneManager;
+  private jukebox: Jukebox;
 
   // Movement state
   private moveForward = false;
@@ -41,12 +43,14 @@ class FirstPersonController {
     camera: THREE.PerspectiveCamera,
     scene: THREE.Scene,
     terrain: Terrain,
-    sceneManager: SceneManager
+    sceneManager: SceneManager,
+    jukebox: Jukebox
   ) {
     this.camera = camera;
     this.scene = scene;
     this.terrain = terrain;
     this.sceneManager = sceneManager;
+    this.jukebox = jukebox;
 
     // Set initial random position
     const x = (Math.random() - 0.5) * 100; // Random x between -50 and 50
@@ -149,8 +153,15 @@ class FirstPersonController {
           }
           break;
         case "KeyT":
-          // Toggle wireframe mode
           this.sceneManager.toggleWireframeMode();
+          break;
+        case "KeyP":
+          // Toggle jukebox play/pause from anywhere
+          this.jukebox.togglePlay();
+          break;
+        case "KeyN":
+          // Next song from anywhere
+          this.jukebox.nextSong();
           break;
       }
     };

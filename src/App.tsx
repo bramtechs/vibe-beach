@@ -3,10 +3,14 @@ import SceneManager from "./three/SceneManager";
 import FogDensitySlider from "./components/FogDensitySlider";
 import FPSCounter from "./components/FPSCounter";
 import BuildDate from "./components/BuildDate";
+import SongTitle from "./components/SongTitle";
+import { SongChangeEvent } from "./three/Jukebox";
 
 function App() {
   const sceneManagerRef = useRef<SceneManager | null>(null);
   const [isGuiVisible, setIsGuiVisible] = useState(true);
+  const [currentSong, setCurrentSong] = useState<string>("");
+  const [showSongTitle, setShowSongTitle] = useState(false);
 
   useEffect(() => {
     const sceneManager = new SceneManager();
@@ -24,23 +28,28 @@ function App() {
       }
     };
 
+    // Handle song change events
+    const handleSongChange = (event: Event) => {
+      const songEvent = event as SongChangeEvent;
+      setCurrentSong(songEvent.songTitle);
+      setShowSongTitle(true);
+    };
+
     window.addEventListener("resize", handleResize);
     window.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("songchange", handleSongChange);
 
     // Clean up on unmount
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("songchange", handleSongChange);
       sceneManager.dispose();
     };
   }, []);
 
   const handleReset = () => {
     sceneManagerRef.current?.resetCamera();
-  };
-
-  const handleTimeChange = (time: number) => {
-    sceneManagerRef.current?.setTimeOfDay(time);
   };
 
   const handleFogDensityChange = (density: number) => {
@@ -52,13 +61,31 @@ function App() {
       <canvas id="scene-canvas" className="w-full h-full block" />
       {isGuiVisible && <FPSCounter />}
       {isGuiVisible && (
-        <div className="absolute bottom-4 left-4 text-white bg-black/50 px-4 py-2 rounded text-sm">
-          Use WASD to move, mouse to look around, SPACE to jump, F to toggle fly
-          mode, T to toggle wireframe mode, H to toggle GUI, and ESC to unlock
-          mouse
-          {window.innerWidth > 640 && (
-            <span className="ml-2">(Q/E for up/down in fly mode)</span>
-          )}
+        <div className="absolute bottom-4 left-4 text-white bg-gradient-to-r from-black/70 to-black/50 backdrop-blur-sm px-6 py-3 rounded-xl shadow-2xl border border-white/10">
+          <div className="text-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+              <span>Use WASD to move, mouse to look around</span>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
+              <span>SPACE to jump, F to toggle fly mode</span>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
+              <span>T to toggle wireframe mode, H to toggle GUI</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+              <span>Press P to play/pause music and N to skip songs</span>
+            </div>
+            {window.innerWidth > 640 && (
+              <div className="flex items-center gap-2 mt-2 text-gray-300">
+                <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
+                <span>Q/E for up/down in fly mode</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
       {isGuiVisible && (
@@ -68,7 +95,7 @@ function App() {
             href="https://github.com/bramtechs/vibe-beach"
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-black/50 hover:bg-black/70 text-white px-4 py-2 rounded transition-colors flex items-center gap-2"
+            className="bg-gradient-to-r from-black/70 to-black/50 backdrop-blur-sm hover:from-black/80 hover:to-black/60 text-white px-6 py-3 rounded-xl shadow-2xl border border-white/10 transition-all duration-300 flex items-center gap-2"
           >
             <svg
               className="w-5 h-5"
@@ -86,14 +113,14 @@ function App() {
           </a>
           <button
             onClick={handleReset}
-            className="bg-black/50 hover:bg-black/70 text-white px-4 py-2 rounded transition-colors"
+            className="bg-gradient-to-r from-black/70 to-black/50 backdrop-blur-sm hover:from-black/80 hover:to-black/60 text-white px-6 py-3 rounded-xl shadow-2xl border border-white/10 transition-all duration-300"
           >
             Reset Position
           </button>
-          {/* <TimeOfDaySlider onChange={handleTimeChange} /> */}
           <FogDensitySlider onChange={handleFogDensityChange} />
         </div>
       )}
+      <SongTitle title={currentSong} isVisible={showSongTitle} />
     </div>
   );
 }

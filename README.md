@@ -46,6 +46,42 @@ Vibe Beach is your digital oasis - a stunning 3D beach environment that brings t
 | **Build Tool** | Vite         |
 | **Icons**      | Lucide React |
 
+## 🎵 Vibe Beach Original Soundtrack
+
+The island features a jukebox with five amazing tracks that you can listen to while exploring. To listen to the music:
+
+1. Find the jukebox on the island (coordinates: 10, 0, 10)
+2. Press 'P' when near the jukebox to play/pause
+3. Press 'N' to switch between tracks
+4. The music plays in 3D space - get closer to the jukebox for a louder experience!
+
+Listen to the tracks right here:
+
+<h2>Sunset Serenade</h2>
+<audio controls>
+  <source src="./public/ost/Vibe Beach.mp3" type="audio/mpeg">
+</audio>
+
+<h2>Midnight Tide</h2>
+<audio controls>
+  <source src="./public/ost/Goth Vibe Beach.mp3" type="audio/mpeg">
+</audio>
+
+<h2>Der Strand lebt</h2>
+<audio controls>
+  <source src="./public/ost/German Beach.mp3" type="audio/mpeg">
+</audio>
+
+<h2>Vibu Bīchi☆Etānaru - ヴィブビーチ ☆ エターナル</h2>
+<audio controls>
+  <source src="./public/ost/Weeb Beach.mp3" type="audio/mpeg">
+</audio>
+
+<h2>Thunder Beach</h2>
+<audio controls>
+  <source src="./public/ost/Metal Beach.mp3" type="audio/mpeg">
+</audio>
+
 ## 🚀 Quick Start Guide
 
 1. **Clone & Chill:**
@@ -115,4 +151,5 @@ This project is licensed under the GNU General Public License v3.0 (GPL v3) - se
 - Cursor IDE for the smooth development experience
 - Claude AI for being the best coding buddy
 - Polyhaven for the beautiful skybox textures
+- Suno for the amazing music
 - And YOU for checking out our project! 🎉

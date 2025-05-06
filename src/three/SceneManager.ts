@@ -8,6 +8,7 @@ import { Terrain } from "./Terrain";
 import { Lighthouse } from "./Lighthouse";
 import { Clouds } from "./Clouds";
 import { BeachFurniture } from "./BeachFurniture";
+import { Jukebox } from "./Jukebox";
 import seedrandom from "seedrandom";
 
 class SceneManager {
@@ -29,6 +30,7 @@ class SceneManager {
   private animationFrameId: number | null = null;
   private readonly TERRAIN_BASE_HEIGHT = 1; // Base height for the terrain
   private beachFurniture!: BeachFurniture;
+  private jukebox!: Jukebox;
 
   constructor() {
     // Initialize scene
@@ -73,7 +75,8 @@ class SceneManager {
       this.camera,
       this.scene,
       this.terrain,
-      this
+      this,
+      this.jukebox
     );
 
     // Load saved position
@@ -111,7 +114,7 @@ class SceneManager {
     // Add lighthouse to the center of the island
     this.lighthouse = new Lighthouse(this.scene);
     const lighthouseHeight = this.terrain.getHeightAt(0, 0);
-    this.lighthouse.setPosition(0, lighthouseHeight - 1, 0); // Lower the lighthouse by 2 units
+    this.lighthouse.setPosition(0, lighthouseHeight - 1, 0);
 
     // Update terrain uniforms with lighting information
     this.terrain.updateUniforms(
@@ -132,6 +135,15 @@ class SceneManager {
     // Add clouds
     this.clouds = new Clouds();
     this.scene.add(this.clouds.getCloudGroup());
+
+    // Add jukebox
+    this.jukebox = new Jukebox(this.scene, this.terrain);
+    const jukeboxPosition = new THREE.Vector3(10, 0, 10);
+    jukeboxPosition.y = this.terrain.getHeightAt(
+      jukeboxPosition.x,
+      jukeboxPosition.z
+    );
+    this.jukebox.setPosition(jukeboxPosition);
   }
 
   private createRockFormations(): void {
@@ -437,60 +449,31 @@ class SceneManager {
     }
   }
 
-  public setTimeOfDay(hour: number): void {
-    this.timeOfDay = hour;
-    this.updateLighting();
+  public toggleWireframeMode(): void {
+    this.isWireframeMode = !this.isWireframeMode;
+    this.terrain.setWireframeMode(this.isWireframeMode);
   }
 
-  public setFogDensity(density: number): void {
-    if (this.scene.fog instanceof THREE.FogExp2) {
-      this.scene.fog.density = density;
+  public setTimeOfDay(time: number): void {
+    this.timeOfDay = time;
+    // Update lighting based on time of day
+    const sunAngle = ((time - 6) / 12) * Math.PI;
+    const sunHeight = Math.sin(sunAngle);
+    const sunIntensity = Math.max(0, sunHeight);
 
-      // Update terrain uniforms with lighting information
-      this.terrain.updateUniforms(
-        this.directionalLight.position.clone().normalize(),
-        new THREE.Color(0x87ceeb),
-        density
-      );
-    }
-  }
+    this.directionalLight.position.set(
+      Math.cos(sunAngle),
+      sunHeight,
+      Math.sin(sunAngle)
+    );
+    this.directionalLight.intensity = sunIntensity * 1.5;
 
-  private updateLighting(): void {
-    // Convert hour to angle (0-360 degrees)
-    const angle = (this.timeOfDay / 24) * Math.PI * 2;
+    // Update ambient light intensity
+    this.ambientLight.intensity = 0.3 + sunIntensity * 0.2;
 
-    // Calculate sun position
-    const radius = 50;
-    const sunX = Math.cos(angle) * radius;
-    const sunY = Math.sin(angle) * radius;
-    const sunZ = Math.sin(angle) * radius;
-
-    // Update directional light position
-    this.directionalLight.position.set(sunX, sunY, sunZ);
-
-    // Update shadow camera to look at the center of the scene
-    this.directionalLight.target.position.set(0, 0, 0);
-    this.directionalLight.target.updateMatrixWorld();
-
-    // Update light intensity based on time of day
-    const isDay = this.timeOfDay > 6 && this.timeOfDay < 18;
-    const intensity = isDay ? 4.5 : 0.5;
-    this.directionalLight.intensity = intensity;
-
-    // Update ambient light color and intensity
-    const ambientIntensity = isDay ? 0.8 : 0.2;
-    const ambientColor = isDay ? 0x4040ff : 0x000033;
-    this.ambientLight.intensity = ambientIntensity;
-    this.ambientLight.color.setHex(ambientColor);
-
-    // Update fog color and density based on time of day
-    const fogColor = isDay ? 0xcccccc : 0x666666;
-    const fogDensity = isDay ? 0.01 : 0.015;
-
-    if (this.scene.fog instanceof THREE.FogExp2) {
-      this.scene.fog.color.setHex(fogColor);
-      this.scene.fog.density = fogDensity;
-    }
+    // Update shadow light
+    this.shadowLight.position.copy(this.directionalLight.position);
+    this.shadowLight.intensity = sunIntensity * 0.5;
 
     // Update terrain uniforms
     this.terrain.updateUniforms(
@@ -498,22 +481,12 @@ class SceneManager {
       new THREE.Color(0x87ceeb),
       0.01
     );
+  }
 
-    // Update shadow light to match sun position
-    this.shadowLight.position.copy(this.directionalLight.position);
-    this.shadowLight.intensity = isDay ? 1.5 : 0.2;
-
-    const shadowCamera = this.directionalLight.shadow.camera;
-    const sunAngle = Math.atan2(sunY, Math.sqrt(sunX * sunX + sunZ * sunZ));
-
-    // Adjust shadow camera frustum based on sun angle
-    const baseDistance = 100;
-    const distance = baseDistance / Math.max(0.1, Math.cos(sunAngle));
-    shadowCamera.left = -distance;
-    shadowCamera.right = distance;
-    shadowCamera.top = distance;
-    shadowCamera.bottom = -distance;
-    shadowCamera.updateProjectionMatrix();
+  public setFogDensity(density: number): void {
+    if (this.scene.fog instanceof THREE.FogExp2) {
+      this.scene.fog.density = density;
+    }
   }
 
   private animate = (): void => {
@@ -556,13 +529,28 @@ class SceneManager {
       cancelAnimationFrame(this.animationFrameId);
     }
 
-    // Dispose of all scene objects
-    this.terrain.dispose();
-    this.ocean.dispose();
-    this.lighthouse.dispose();
-    this.sandTrailManager.dispose();
+    // Dispose of jukebox
+    if (this.jukebox) {
+      this.jukebox.dispose();
+    }
 
-    // Dispose renderer
+    // Dispose of other resources
+    this.scene.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        if (object.geometry) {
+          object.geometry.dispose();
+        }
+        if (object.material) {
+          if (Array.isArray(object.material)) {
+            object.material.forEach((material) => material.dispose());
+          } else {
+            object.material.dispose();
+          }
+        }
+      }
+    });
+
+    // Dispose of renderer
     this.renderer.dispose();
   }
 
@@ -575,31 +563,6 @@ class SceneManager {
     // Also save position when the window is about to close
     window.addEventListener("beforeunload", () => {
       this.controller.savePosition();
-    });
-  }
-
-  public toggleWireframeMode(): void {
-    this.isWireframeMode = !this.isWireframeMode;
-
-    // Update all meshes in the scene
-    this.scene.traverse((object) => {
-      if (object instanceof THREE.Mesh) {
-        if (
-          object.material instanceof THREE.MeshStandardMaterial ||
-          object.material instanceof THREE.ShaderMaterial
-        ) {
-          object.material.wireframe = this.isWireframeMode;
-        } else if (Array.isArray(object.material)) {
-          object.material.forEach((material) => {
-            if (
-              material instanceof THREE.MeshStandardMaterial ||
-              material instanceof THREE.ShaderMaterial
-            ) {
-              material.wireframe = this.isWireframeMode;
-            }
-          });
-        }
-      }
     });
   }
 }
