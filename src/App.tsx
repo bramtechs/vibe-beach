@@ -142,11 +142,13 @@ function App() {
           <VolumeSlider onChange={handleVolumeChange} />
         </div>
       )}
-      <SongTitle
-        title={currentSong}
-        isVisible={showSongTitle}
-        isMuted={isMuted}
-      />
+      {isGuiVisible && (
+        <SongTitle
+          title={currentSong}
+          isVisible={showSongTitle}
+          isMuted={isMuted}
+        />
+      )}
     </div>
   );
 }
