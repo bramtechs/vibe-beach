@@ -451,7 +451,30 @@ class SceneManager {
 
   public toggleWireframeMode(): void {
     this.isWireframeMode = !this.isWireframeMode;
-    this.terrain.setWireframeMode(this.isWireframeMode);
+
+    // Apply wireframe mode to all objects in the scene
+    this.scene.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        const material = object.material;
+        if (
+          material instanceof THREE.MeshStandardMaterial ||
+          material instanceof THREE.ShaderMaterial ||
+          material instanceof THREE.MeshBasicMaterial
+        ) {
+          material.wireframe = this.isWireframeMode;
+        } else if (Array.isArray(material)) {
+          material.forEach((mat) => {
+            if (
+              mat instanceof THREE.MeshStandardMaterial ||
+              mat instanceof THREE.ShaderMaterial ||
+              mat instanceof THREE.MeshBasicMaterial
+            ) {
+              mat.wireframe = this.isWireframeMode;
+            }
+          });
+        }
+      }
+    });
   }
 
   public setTimeOfDay(time: number): void {
@@ -484,9 +507,11 @@ class SceneManager {
   }
 
   public setFogDensity(density: number): void {
-    if (this.scene.fog instanceof THREE.FogExp2) {
-      this.scene.fog.density = density;
-    }
+    this.scene.fog = new THREE.FogExp2(0x87ceeb, density);
+  }
+
+  public getJukebox(): Jukebox | undefined {
+    return this.jukebox;
   }
 
   private animate = (): void => {

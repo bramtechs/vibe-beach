@@ -48,24 +48,24 @@ Vibe Beach is your digital oasis - a stunning 3D beach environment that brings t
 
 ## 🎵 Vibe Beach Original Soundtrack
 
-The island features a jukebox with five amazing tracks that you can listen to while exploring. To listen to the music:
+The island features a jukebox with amazing tracks that you can listen to while exploring. To listen to the music:
 
 1. Find the jukebox on the island (coordinates: 10, 0, 10)
-2. Press 'P' when near the jukebox to mute/unmute
+2. Press 'P' to mute/unmute
 3. Press 'N' to switch between tracks
-4. The music plays in 3D space - get closer to the jukebox for a louder experience!
 
 The soundtrack includes these amazing tracks:
 
 > 🎵 **Click the links below to download the tracks:**
 
-- [Sunset Serenade](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Vibe%20Beach.mp3)
-- [Midnight Tide](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Goth%20Vibe%20Beach.mp3)
-- [Der Strand lebt](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/German%20Beach.mp3)
-- [Vibu Bīchi☆Etānaru - ヴィブビーチ ☆ エターナル](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Weeb%20Beach.mp3)
-- [Thunder Beach](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Metal%20Beach.mp3)
-- [Strandvibes](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Strandvibes.mp3)
-- [Swag In De Lucht](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Swag%20Beach.mp3)
+- [Sunset Serenade - Jack Sanderson & The Beachcombers](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Vibe%20Beach.mp3)
+- [Midnight Tide - Luna Blackwood](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Goth%20Vibe%20Beach.mp3)
+- [Der Strand lebt - Klaus Fischer & Die Strandkörbe](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/German%20Beach.mp3)
+- [Vibu Bīchi☆Etānaru - ヴィブビーチ ☆ エターナル - Yuki Tanaka & ビーチ ☆ ガールズ (Beach☆Girls)](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Weeb%20Beach.mp3)
+- [Thunder Beach - Axel Storm & Metal Tide](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Metal%20Beach.mp3)
+- [Strandvibes - Pieter van Dijk](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Strandvibes.mp3)
+- [Swag In De Lucht - Anneke van der Meer](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Swag%20Beach.mp3)
+- ['t Ritme Leeft Hier - Janneke & De Strandgasten](https://raw.githubusercontent.com/bramtechs/vibe-beach/main/public/ost/Flemish%20Beach.mp3)
 
 > 💡 **Pro Tip:** For the best experience, launch the application and listen to the music through the 3D jukebox in the scene. The positional audio system creates an immersive experience where the music volume changes based on your distance from the jukebox!
 

@@ -591,11 +591,17 @@ export class Terrain {
     this.isWireframeMode = enabled;
     this.chunks.forEach((chunk) => {
       const material = chunk.getMesh().material;
-      if (material instanceof THREE.MeshStandardMaterial) {
+      if (
+        material instanceof THREE.MeshStandardMaterial ||
+        material instanceof THREE.ShaderMaterial
+      ) {
         material.wireframe = enabled;
       } else if (Array.isArray(material)) {
         material.forEach((mat) => {
-          if (mat instanceof THREE.MeshStandardMaterial) {
+          if (
+            mat instanceof THREE.MeshStandardMaterial ||
+            mat instanceof THREE.ShaderMaterial
+          ) {
             mat.wireframe = enabled;
           }
         });

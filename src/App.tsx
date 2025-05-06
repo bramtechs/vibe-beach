@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import SceneManager from "./three/SceneManager";
 import FogDensitySlider from "./components/FogDensitySlider";
+import VolumeSlider from "./components/VolumeSlider";
 import FPSCounter from "./components/FPSCounter";
 import BuildDate from "./components/BuildDate";
 import SongTitle from "./components/SongTitle";
@@ -29,6 +30,7 @@ function App() {
       }
       if (event.code === "KeyP") {
         setIsMuted((prev) => !prev);
+        sceneManagerRef.current?.getJukebox()?.togglePlay();
       }
     };
 
@@ -58,6 +60,11 @@ function App() {
 
   const handleFogDensityChange = (density: number) => {
     sceneManagerRef.current?.setFogDensity(density);
+  };
+
+  const handleVolumeChange = (volume: number) => {
+    sceneManagerRef.current?.getJukebox()?.setVolume(volume);
+    setIsMuted(volume === 0);
   };
 
   return (
@@ -126,6 +133,7 @@ function App() {
             Reset Position
           </button>
           <FogDensitySlider onChange={handleFogDensityChange} />
+          <VolumeSlider onChange={handleVolumeChange} />
         </div>
       )}
       <SongTitle

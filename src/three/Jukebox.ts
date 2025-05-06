@@ -13,7 +13,7 @@ export class Jukebox {
   private terrain: Terrain;
   private jukeboxGroup: THREE.Group;
   private audioListener: THREE.AudioListener;
-  private audio: THREE.PositionalAudio;
+  private audio: THREE.Audio;
   private isPlaying: boolean = false;
   private isMuted: boolean = false;
   private currentSong: number = Math.floor(Math.random() * 5); // Random song index
@@ -25,6 +25,7 @@ export class Jukebox {
     "ost/Metal Beach.mp3",
     "ost/Strandvibes.mp3",
     "ost/Swag Beach.mp3",
+    "ost/Flemish Beach.mp3",
   ];
 
   private songTitles: string[] = [
@@ -35,6 +36,7 @@ export class Jukebox {
     "Thunder Beach - Axel Storm & Metal Tide",
     "Strandvibes - Pieter van Dijk",
     "Swag In De Lucht - Anneke van der Meer",
+    "'t Ritme Leeft Hier - Janneke & De Strandgasten",
   ];
 
   private initAudioHandler: (() => void) | null = null;
@@ -44,7 +46,7 @@ export class Jukebox {
     this.terrain = terrain;
     this.jukeboxGroup = new THREE.Group();
     this.audioListener = new THREE.AudioListener();
-    this.audio = new THREE.PositionalAudio(this.audioListener);
+    this.audio = new THREE.Audio(this.audioListener);
 
     this.createJukeboxModel();
     this.setupAudio();
@@ -188,12 +190,7 @@ export class Jukebox {
       // onLoad callback
       (buffer) => {
         this.audio.setBuffer(buffer);
-        // Decrease the reference distance to make sound fade out more quickly
-        this.audio.setRefDistance(5);
-        // Increase rolloff factor to make the volume decrease more rapidly with distance
-        this.audio.setRolloffFactor(2);
-        // Set a higher volume to ensure it's audible when close
-        this.audio.setVolume(1.0);
+        this.audio.setVolume(0.3);
         this.audio.setLoop(true);
 
         // Dispatch event when song is loaded
@@ -209,8 +206,6 @@ export class Jukebox {
         console.error("Error loading audio:", error);
       }
     );
-
-    this.jukeboxGroup.add(this.audio);
   }
 
   private getCurrentSongTitle(): string {
@@ -228,6 +223,12 @@ export class Jukebox {
     } else {
       this.audio.setVolume(1.0);
     }
+  }
+
+  public setVolume(volume: number): void {
+    this.audio.setVolume(volume);
+    // Update muted state based on volume
+    this.isMuted = volume === 0;
   }
 
   public nextSong(): void {
