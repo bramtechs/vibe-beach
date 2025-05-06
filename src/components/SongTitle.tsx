@@ -41,7 +41,7 @@ const SongTitle: React.FC<SongTitleProps> = ({ title, isVisible }) => {
         <div className="text-sm text-gray-300/80 flex items-center justify-center gap-3">
           <span className="flex items-center">
             <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-            Press P to play/pause
+            Press P to mute/unmute
           </span>
           <span className="text-gray-500">•</span>
           <span className="flex items-center">

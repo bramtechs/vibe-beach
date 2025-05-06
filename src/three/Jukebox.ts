@@ -15,6 +15,7 @@ export class Jukebox {
   private audioListener: THREE.AudioListener;
   private audio: THREE.PositionalAudio;
   private isPlaying: boolean = false;
+  private isMuted: boolean = false;
   private currentSong: number = Math.floor(Math.random() * 5); // Random song index
   private songs: string[] = [
     "ost/Vibe Beach.mp3",
@@ -217,15 +218,12 @@ export class Jukebox {
   }
 
   public togglePlay(): void {
-    if (this.isPlaying) {
-      this.audio.pause();
+    this.isMuted = !this.isMuted;
+    if (this.isMuted) {
+      this.audio.setVolume(0);
     } else {
-      this.audio.play();
-      // Dispatch event when song starts playing
-      const songTitle = this.getCurrentSongTitle();
-      document.dispatchEvent(new SongChangeEvent(songTitle));
+      this.audio.setVolume(0.7);
     }
-    this.isPlaying = !this.isPlaying;
   }
 
   public nextSong(): void {

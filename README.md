@@ -51,7 +51,7 @@ Vibe Beach is your digital oasis - a stunning 3D beach environment that brings t
 The island features a jukebox with five amazing tracks that you can listen to while exploring. To listen to the music:
 
 1. Find the jukebox on the island (coordinates: 10, 0, 10)
-2. Press 'P' when near the jukebox to play/pause
+2. Press 'P' when near the jukebox to mute/unmute
 3. Press 'N' to switch between tracks
 4. The music plays in 3D space - get closer to the jukebox for a louder experience!
 

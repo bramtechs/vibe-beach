@@ -77,7 +77,7 @@ function App() {
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-              <span>Press P to play/pause music and N to skip songs</span>
+              <span>Press P to mute/unmute music and N to skip songs</span>
             </div>
             {window.innerWidth > 640 && (
               <div className="flex items-center gap-2 mt-2 text-gray-300">
