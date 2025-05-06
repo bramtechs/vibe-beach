@@ -55,34 +55,19 @@ The island features a jukebox with five amazing tracks that you can listen to wh
 3. Press 'N' to switch between tracks
 4. The music plays in 3D space - get closer to the jukebox for a louder experience!
 
-Listen to the tracks right here:
+The soundtrack includes these amazing tracks:
 
-<h2>Sunset Serenade</h2>
-<audio controls>
-  <source src="./public/ost/Vibe Beach.mp3" type="audio/mpeg">
-</audio>
+- [Sunset Serenade](./public/ost/Vibe%20Beach.mp3)
+- [Midnight Tide](./public/ost/Goth%20Vibe%20Beach.mp3)
+- [Der Strand lebt](./public/ost/German%20Beach.mp3)
+- [Vibu Bīchi☆Etānaru - ヴィブビーチ ☆ エターナル](./public/ost/Weeb%20Beach.mp3)
+- [Thunder Beach](./public/ost/Metal%20Beach.mp3)
+- [Strandvibes](./public/ost/Strandvibes.mp3)
+- [Swag In De Lucht](./public/ost/Swag%20Beach.mp3)
 
-<h2>Midnight Tide</h2>
-<audio controls>
-  <source src="./public/ost/Goth Vibe Beach.mp3" type="audio/mpeg">
-</audio>
+> 💡 **Pro Tip:** For the best experience, launch the application and listen to the music through the 3D jukebox in the scene. The positional audio system creates an immersive experience where the music volume changes based on your distance from the jukebox!
 
-<h2>Der Strand lebt</h2>
-<audio controls>
-  <source src="./public/ost/German Beach.mp3" type="audio/mpeg">
-</audio>
-
-<h2>Vibu Bīchi☆Etānaru - ヴィブビーチ ☆ エターナル</h2>
-<audio controls>
-  <source src="./public/ost/Weeb Beach.mp3" type="audio/mpeg">
-</audio>
-
-<h2>Thunder Beach</h2>
-<audio controls>
-  <source src="./public/ost/Metal Beach.mp3" type="audio/mpeg">
-</audio>
-
-## 🚀 Quick Start Guide
+## 🎮 Quick Start Guide
 
 1. **Clone & Chill:**
 

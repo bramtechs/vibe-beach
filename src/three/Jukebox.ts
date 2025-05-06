@@ -23,14 +23,18 @@ export class Jukebox {
     "ost/German Beach.mp3",
     "ost/Weeb Beach.mp3",
     "ost/Metal Beach.mp3",
+    "ost/Strandvibes.mp3",
+    "ost/Swag Beach.mp3",
   ];
 
   private songTitles: string[] = [
-    "Sunset Serenade",
-    "Midnight Tide",
-    "Der Strand lebt",
-    "Vibu Bīchi☆Etānaru - ヴィブビーチ ☆ エターナル",
-    "Thunder Beach",
+    "Sunset Serenade - Jack Sanderson & The Beachcombers",
+    "Midnight Tide - Luna Blackwood",
+    "Der Strand lebt - Klaus Fischer & Die Strandkörbe",
+    "Vibu Bīchi☆Etānaru - ヴィブビーチ ☆ エターナル - Yuki Tanaka & ビーチ☆ガールズ (Beach☆Girls)",
+    "Thunder Beach - Axel Storm & Metal Tide",
+    "Strandvibes - Pieter van Dijk",
+    "Swag In De Lucht - Anneke van der Meer",
   ];
 
   private initAudioHandler: (() => void) | null = null;
@@ -189,7 +193,7 @@ export class Jukebox {
         // Increase rolloff factor to make the volume decrease more rapidly with distance
         this.audio.setRolloffFactor(2);
         // Set a higher volume to ensure it's audible when close
-        this.audio.setVolume(0.7);
+        this.audio.setVolume(1.0);
         this.audio.setLoop(true);
 
         // Dispatch event when song is loaded
@@ -222,7 +226,7 @@ export class Jukebox {
     if (this.isMuted) {
       this.audio.setVolume(0);
     } else {
-      this.audio.setVolume(0.7);
+      this.audio.setVolume(1.0);
     }
   }
 

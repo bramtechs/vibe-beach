@@ -75,9 +75,13 @@ function App() {
               <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
               <span>T to toggle wireframe mode, H to toggle GUI</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-2">
               <span className="w-2 h-2 bg-green-400 rounded-full"></span>
               <span>Press P to mute/unmute music and N to skip songs</span>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
+              <span>Press ESC to unlock the mouse</span>
             </div>
             {window.innerWidth > 640 && (
               <div className="flex items-center gap-2 mt-2 text-gray-300">
